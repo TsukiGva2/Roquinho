@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Name=Foquinho
+GenericName=Notch de foco
+Comment=Registre demandas, coloque em foco e cronometre — direto no topo da tela
+Exec=@BIN@
+Icon=foco-max
+Categories=Utility;Office;
+Keywords=foco;tarefas;demandas;timer;pomodoro;notch;
+StartupNotify=false
+Actions=add;hide;
+
+[Desktop Action add]
+Name=Nova demanda
+Exec=@BIN@ add
+
+[Desktop Action hide]
+Name=Esconder/mostrar
+Exec=@BIN@ hide
