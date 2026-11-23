@@ -29,9 +29,15 @@ Item {
         power: "M12 3.5v8M6.6 6.6a7.6 7.6 0 1 0 10.8 0",
         restore: "M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v4h4",
         bolt: "M13 3L5.5 13.5H12L11 21l7.5-10.5H12z",
+        music: "M9 18V6.5l10-2V16M9 18a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0M19 16a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0",
+        next: "M5.5 6.6v10.8a.8.8 0 0 0 1.2.7l8.3-5.4a.8.8 0 0 0 0-1.4L6.7 5.9a.8.8 0 0 0-1.2.7zM16.8 6h1.6a.6.6 0 0 1 .6.6v10.8a.6.6 0 0 1-.6.6h-1.6a.6.6 0 0 1-.6-.6V6.6a.6.6 0 0 1 .6-.6z",
+        previous: "M18.5 6.6v10.8a.8.8 0 0 1-1.2.7L9 12.7a.8.8 0 0 1 0-1.4l8.3-5.4a.8.8 0 0 1 1.2.7zM7.2 6H5.6a.6.6 0 0 0-.6.6v10.8a.6.6 0 0 0 .6.6h1.6a.6.6 0 0 0 .6-.6V6.6a.6.6 0 0 0-.6-.6z",
+        pauseFill: "M7.5 5.5h2.4a.9.9 0 0 1 .9.9v11.2a.9.9 0 0 1-.9.9H7.5a.9.9 0 0 1-.9-.9V6.4a.9.9 0 0 1 .9-.9zM14.1 5.5h2.4a.9.9 0 0 1 .9.9v11.2a.9.9 0 0 1-.9.9h-2.4a.9.9 0 0 1-.9-.9V6.4a.9.9 0 0 1 .9-.9z",
+        display: "M4.5 5h15a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 15.5v-9A1.5 1.5 0 0 1 4.5 5zM9 20.5h6M12 17v3.5",
+        star: "M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.8l-5.1 2.7 1-5.7-4.1-4 5.7-.8z",
         sparkle: "M12 3.5l1.9 5.6 5.6 1.9-5.6 1.9L12 18.5l-1.9-5.6L4.5 11l5.6-1.9z"
     })
-    readonly property var filledNames: ({ play: true, bolt: true, sparkle: true })
+    readonly property var filledNames: ({ play: true, bolt: true, sparkle: true, next: true, previous: true, pauseFill: true })
     readonly property bool filled: !!filledNames[name]
 
     Shape {

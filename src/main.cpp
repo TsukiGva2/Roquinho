@@ -1,4 +1,5 @@
 #include "backend.h"
+#include "media.h"
 
 #include <QGuiApplication>
 #include <QLocalSocket>
@@ -14,6 +15,8 @@
 //   foco-max add [texto]     nova demanda (sem texto abre o campo de digitação)
 //   foco-max focus <texto>   cria a demanda direto em foco
 //   foco-max toggle|hide|show|done|quit
+//   foco-max screen [next|primary|<conector>]   move o notch de monitor
+//   foco-max play|next|prev                     controla a música tocando
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
@@ -41,8 +44,12 @@ int main(int argc, char *argv[])
     Backend backend;
     backend.startServer();
 
+    Media media;
+    media.setVisualize(true);
+
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("Backend"), &backend);
+    engine.rootContext()->setContextProperty(QStringLiteral("Media"), &media);
     engine.load(QUrl(QStringLiteral("qrc:/qml/Main.qml")));
 
     auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
@@ -64,8 +71,8 @@ int main(int argc, char *argv[])
     if (!commandLine.isEmpty()) {
         QTimer::singleShot(700, &backend, [&backend, commandLine] {
             const int space = commandLine.indexOf(QLatin1Char(' '));
-            emit backend.command(space < 0 ? commandLine : commandLine.left(space),
-                                 space < 0 ? QString() : commandLine.mid(space + 1));
+            backend.runCommand(space < 0 ? commandLine : commandLine.left(space),
+                               space < 0 ? QString() : commandLine.mid(space + 1).trimmed());
         });
     }
 

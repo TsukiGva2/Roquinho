@@ -1,15 +1,19 @@
 #include "backend.h"
 
 #include <QAction>
+#include <algorithm>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QGuiApplication>
 #include <QKeySequence>
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QQuickWindow>
 #include <QRegion>
 #include <QSaveFile>
+#include <QScreen>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QTextStream>
 
@@ -68,6 +72,21 @@ Backend::Backend(QObject *parent)
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, &m_accentDebounce, qOverload<>(&QTimer::start));
 
     setupShortcuts();
+
+    m_screenName = QSettings(settingsPath(), QSettings::IniFormat).value(QStringLiteral("screen")).toString();
+
+    // Monitor conectado/desconectado ou principal trocado: reposiciona o notch.
+    // (Quando o monitor some, o compositor descarta a superfície; sem isso o notch desaparecia.)
+    m_screenDebounce.setSingleShot(true);
+    m_screenDebounce.setInterval(400);
+    connect(&m_screenDebounce, &QTimer::timeout, this, [this] { placeWindow(true); });
+    auto screensChangedNow = [this] {
+        emit screensChanged();
+        m_screenDebounce.start();
+    };
+    connect(qApp, &QGuiApplication::screenAdded, this, screensChangedNow);
+    connect(qApp, &QGuiApplication::screenRemoved, this, screensChangedNow);
+    connect(qApp, &QGuiApplication::primaryScreenChanged, this, screensChangedNow);
 }
 
 QString Backend::serverName()
@@ -78,6 +97,116 @@ QString Backend::serverName()
 void Backend::attachWindow(QQuickWindow *window)
 {
     m_window = window;
+    if (auto *layer = LayerShellQt::Window::get(window))
+        layer->setCloseOnDismissed(false); // nós mesmos remapeamos em outro monitor
+    placeWindow(false);
+}
+
+QString Backend::settingsPath() const
+{
+    return configDir() + QStringLiteral("/foco-maxrc");
+}
+
+namespace {
+
+QList<QScreen *> sortedScreens()
+{
+    QList<QScreen *> list = QGuiApplication::screens();
+    std::sort(list.begin(), list.end(), [](QScreen *a, QScreen *b) {
+        const QPoint pa = a->geometry().topLeft(), pb = b->geometry().topLeft();
+        return pa.x() != pb.x() ? pa.x() < pb.x() : pa.y() < pb.y();
+    });
+    return list;
+}
+
+QString screenLabel(QScreen *s)
+{
+    if (s->name().startsWith(QLatin1String("eDP")) || s->name().startsWith(QLatin1String("LVDS")))
+        return QStringLiteral("Notebook");
+    const QString model = s->model().trimmed();
+    return model.isEmpty() ? s->name() : model;
+}
+
+} // namespace
+
+QVariantList Backend::screens() const
+{
+    QVariantList out;
+    QScreen *primary = QGuiApplication::primaryScreen();
+    for (QScreen *s : sortedScreens()) {
+        out.append(QVariantMap{
+            {QStringLiteral("name"), s->name()},
+            {QStringLiteral("label"), screenLabel(s)},
+            {QStringLiteral("primary"), s == primary},
+        });
+    }
+    return out;
+}
+
+QScreen *Backend::targetScreen() const
+{
+    if (!m_screenName.isEmpty()) {
+        for (QScreen *s : QGuiApplication::screens())
+            if (s->name() == m_screenName)
+                return s;
+    }
+    return QGuiApplication::primaryScreen();
+}
+
+void Backend::setScreenName(const QString &name)
+{
+    if (name == m_screenName)
+        return;
+    m_screenName = name;
+    QSettings settings(settingsPath(), QSettings::IniFormat);
+    settings.setValue(QStringLiteral("screen"), name);
+    emit screenNameChanged();
+    placeWindow(true);
+}
+
+void Backend::nextScreen()
+{
+    const QList<QScreen *> list = sortedScreens();
+    if (list.size() < 2)
+        return;
+    const int i = list.indexOf(targetScreen());
+    setScreenName(list.at((i + 1) % list.size())->name());
+}
+
+void Backend::placeWindow(bool remap)
+{
+    QScreen *screen = targetScreen();
+    if (!m_window || !screen)
+        return;
+    auto *layer = LayerShellQt::Window::get(m_window);
+    // A superfície layer-shell fica presa ao monitor em que foi criada:
+    // para trocar, desfaz o mapeamento e mapeia de novo no destino.
+    const bool wasVisible = m_window->isVisible();
+    if (remap && wasVisible)
+        m_window->hide();
+    m_window->setScreen(screen);
+    if (layer)
+        layer->setScreen(screen);
+    if (remap && wasVisible)
+        m_window->show();
+    if (m_currentScreen != screen->name()) {
+        m_currentScreen = screen->name();
+        emit currentScreenChanged();
+    }
+}
+
+void Backend::runCommand(const QString &name, const QString &arg)
+{
+    if (name == QLatin1String("screen")) {
+        if (arg.isEmpty() || arg == QLatin1String("next"))
+            nextScreen();
+        else if (arg == QLatin1String("primary") || arg == QLatin1String("principal"))
+            setScreenName(QString());
+        else
+            setScreenName(arg);
+        return;
+    }
+    emit command(name, arg);
 }
 
 bool Backend::startServer()
@@ -115,7 +244,7 @@ void Backend::dispatch(const QString &line)
     const int space = line.indexOf(QLatin1Char(' '));
     const QString name = space < 0 ? line : line.left(space);
     const QString arg = space < 0 ? QString() : line.mid(space + 1).trimmed();
-    emit command(name, arg);
+    runCommand(name, arg);
 }
 
 void Backend::reloadAccent()
@@ -161,6 +290,10 @@ void Backend::setupShortcuts()
         {"toggle-panel", "Abrir/fechar painel", QKeySequence(Qt::META | Qt::ALT | Qt::Key_F), "toggle"},
         {"toggle-hide", "Esconder/mostrar (bolinha)", QKeySequence(Qt::META | Qt::ALT | Qt::Key_H), "hide"},
         {"complete", "Concluir demanda em foco", QKeySequence(Qt::META | Qt::ALT | Qt::Key_D), "done"},
+        {"next-screen", "Mover para o próximo monitor", QKeySequence(Qt::META | Qt::ALT | Qt::Key_M), "screen"},
+        {"music-play", "Música: tocar / pausar", QKeySequence(Qt::META | Qt::ALT | Qt::Key_P), "play"},
+        {"music-next", "Música: próxima", QKeySequence(Qt::META | Qt::ALT | Qt::Key_Period), "next"},
+        {"music-prev", "Música: anterior", QKeySequence(Qt::META | Qt::ALT | Qt::Key_Comma), "prev"},
     };
     for (const Def &d : defs) {
         auto *action = new QAction(QString::fromUtf8(d.text), this);
@@ -170,7 +303,7 @@ void Backend::setupShortcuts()
         KGlobalAccel::self()->setDefaultShortcut(action, {d.seq});
         KGlobalAccel::self()->setShortcut(action, {d.seq});
         const QString cmd = QString::fromLatin1(d.cmd);
-        connect(action, &QAction::triggered, this, [this, cmd] { emit command(cmd, QString()); });
+        connect(action, &QAction::triggered, this, [this, cmd] { runCommand(cmd, QString()); });
     }
 }
 

@@ -93,7 +93,7 @@ Column {
 
     Rectangle {
         width: parent.width
-        height: 150
+        height: 200
         radius: 14
         color: Theme.card
         border.width: 1
@@ -101,7 +101,7 @@ Column {
         Column {
             anchors.fill: parent
             Repeater {
-                model: 3
+                model: 4
                 Item {
                     required property int index
                     width: parent.width
@@ -116,12 +116,12 @@ Column {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 1
                         Text {
-                            text: ["Puxar a próxima ao concluir", "Iniciar junto com o sistema", "Dicas de atalhos do " + Store.petName][index]
+                            text: ["Puxar a próxima ao concluir", "Iniciar junto com o sistema", "Dicas de atalhos do " + Store.petName, "Mostrar a música tocando"][index]
                             color: Theme.text
                             font.pixelSize: 13
                         }
                         Text {
-                            text: ["A primeira da fila entra em foco na hora", "Abre o notch quando você faz login", "Um balãozinho ao abrir e uma vez por dia"][index]
+                            text: ["A primeira da fila entra em foco na hora", "Abre o notch quando você faz login", "Um balãozinho ao abrir e uma vez por dia", "Spotify e outros players: DVD, controles e ondinhas"][index]
                             color: Theme.text3
                             font.pixelSize: 11
                         }
@@ -130,16 +130,96 @@ Column {
                         anchors.right: parent.right
                         anchors.rightMargin: 14
                         anchors.verticalCenter: parent.verticalCenter
-                        checked: index === 0 ? Store.autoAdvance : index === 2 ? Store.tipsEnabled : (Store.backend ? Store.backend.autostart : false)
+                        checked: index === 0 ? Store.autoAdvance : index === 2 ? Store.tipsEnabled : index === 3 ? Store.musicEnabled : (Store.backend ? Store.backend.autostart : false)
                         onToggled: (v) => {
                             if (index === 0) Store.autoAdvance = v
                             else if (index === 2) Store.tipsEnabled = v
+                            else if (index === 3) Store.musicEnabled = v
                             else if (Store.backend) Store.backend.autostart = v
                         }
                     }
                 }
             }
         }
+    }
+
+    Item { width: 1; height: 2 }
+    SectionLabel { width: parent.width; label: "MONITOR" }
+
+    Row {
+        id: screenRow
+        readonly property var screens: Store.backend ? Store.backend.screens : []
+        readonly property string chosen: Store.backend ? Store.backend.screenName : ""
+        readonly property string current: Store.backend ? Store.backend.currentScreen : ""
+        readonly property var options: {
+            let primaryLabel = ""
+            for (const s of screens) if (s.primary) primaryLabel = s.label
+            const out = [{ key: "", title: "Principal", sub: primaryLabel ? "Segue o " + primaryLabel : "Segue o principal" }]
+            for (const s of screens)
+                out.push({ key: s.name, title: s.label, sub: s.name + (s.primary ? " · principal" : "") })
+            return out
+        }
+        spacing: 8
+        Repeater {
+            model: screenRow.options
+            Rectangle {
+                id: scr
+                required property var modelData
+                readonly property bool selected: screenRow.chosen === modelData.key
+                width: (sp.width - screenRow.spacing * (screenRow.options.length - 1)) / screenRow.options.length
+                height: 74
+                radius: 16
+                color: scrMa.containsMouse ? Theme.cardHover : Theme.card
+                border.width: selected ? 1.5 : 1
+                border.color: selected ? Theme.accent : Theme.stroke
+                Behavior on border.color { ColorAnimation { duration: 160 } }
+                Icon {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: 10
+                    name: scr.modelData.key === "" ? "star" : "display"
+                    size: 20
+                    color: scr.selected ? Theme.accent : Theme.text2
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: 35
+                    width: parent.width - 12
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                    text: scr.modelData.title
+                    color: scr.selected ? Theme.text : Theme.text2
+                    font.pixelSize: 12
+                    font.weight: scr.selected ? Font.DemiBold : Font.Normal
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: 52
+                    width: parent.width - 12
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                    text: scr.modelData.sub
+                    color: Theme.text3
+                    font.pixelSize: 10
+                }
+                MouseArea {
+                    id: scrMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: if (Store.backend) Store.backend.screenName = scr.modelData.key
+                }
+            }
+        }
+    }
+    Text {
+        x: 4
+        width: parent.width - 8
+        wrapMode: Text.WordWrap
+        text: screenRow.screens.length > 1
+              ? "Ou puxe pro próximo monitor de qualquer lugar com Meta + Alt + M."
+              : "Só um monitor conectado agora. Quando ligar outro, ele aparece aqui."
+        color: Theme.text3
+        font.pixelSize: 11
     }
 
     Item { width: 1; height: 2 }
@@ -159,7 +239,7 @@ Column {
             width: parent.width - 28
             spacing: 2
             Repeater {
-                model: [["N", "Nova demanda"], ["F", "Abrir / fechar painel"], ["H", "Esconder em bolinha"], ["D", "Concluir demanda em foco"]]
+                model: [["N", "Nova demanda"], ["F", "Abrir / fechar painel"], ["H", "Esconder em bolinha"], ["D", "Concluir demanda em foco"], ["M", "Mover pro próximo monitor"], ["P", "Tocar / pausar música"], [".", "Próxima música"], [",", "Música anterior"]]
                 Item {
                     required property var modelData
                     width: shortcutsCol.width
@@ -226,7 +306,7 @@ Column {
             anchors.right: parent.right
             anchors.rightMargin: 4
             anchors.verticalCenter: parent.verticalCenter
-            text: "Foquinho 1.0 · " + Store.totalDone + " concluídas no total"
+            text: "Foquinho 1.1 · " + Store.totalDone + " concluídas no total"
             color: Theme.text3
             font.pixelSize: 11
         }

@@ -33,6 +33,19 @@ Ele só some se **você** mandar.
 - 🔁 **A fila anda sozinha.** Concluiu? A próxima já entra em foco.
 - 🐱 **Um mascote com personalidade.** Ele dorme, comemora, se assusta, fica cansado e pede carinho.
 - 🎨 **Parece nativo.** Cantos, sombras, fontes e a cor de destaque do seu KDE, em tempo real.
+- 🎵 **A trilha sonora vem junto.** O Spotify (e outros players) toca direto no notch, com DVD girando e ondinhas na batida.
+
+---
+
+## 🆕 Novidades da versão 1.1
+
+| | O que chegou |
+|---|---|
+| 🎵 | **Modo música:** o Foquinho virou o player do PC. DVD com a capa girando, controles, barra de progresso e um aviso a cada faixa nova |
+| 🫧 | **Bolinha que dança:** escondido, ele vira uma bolinha com ondas cilíndricas na cor da capa, pulsando na batida de verdade |
+| ⌨️ | **Atalhos de música:** tocar/pausar, próxima e anterior de qualquer lugar |
+| 🖥️ | **Escolha o monitor:** puxe o notch pra tela que quiser, pelos ajustes ou com <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> |
+| 🛟 | **Não some mais:** se um monitor desliga ou é desconectado, o notch se reposiciona sozinho |
 
 ---
 
@@ -79,6 +92,56 @@ uma bolinha discreta que pulsa enquanto o cronômetro roda. Clicou nela, tudo vo
 
 ---
 
+## 🎵 O player de música do seu PC
+
+Deu play no Spotify? O Foquinho percebe na hora. Abra o painel e lá está um **DVD com a capa do álbum**
+girando enquanto a música toca, com o fundo tingido pelas cores da capa e um equalizador sutil no rodapé.
+
+<p align="center">
+  <img src="docs/media/music-panel.gif" alt="Painel com o DVD girando, controles e equalizador" width="880">
+</p>
+
+- ⏯️ **Voltar, tocar/pausar e avançar** direto no card, e a barra de progresso aceita clique e arraste
+- 💿 **Clique no DVD** para abrir o Spotify e escolher outra música por lá
+- 🎨 **A cor de tudo vem da capa:** o botão, o progresso, as ondinhas e o brilho mudam a cada faixa
+- 🔔 **Aviso de faixa nova** no notch, com um disquinho girando
+- 🎚️ **Ondinhas no notch fechado:** quatro barrinhas dançam na pontinha direita enquanto toca
+
+### 🫧 A bolinha que dança
+
+Escondido com a música tocando, o Foquinho vira uma bolinha preta com **ondas cilíndricas** na cor da capa.
+Ela respira com o volume e estoura um anel a cada batida. Clique para voltar; **clique direito pausa a música**.
+
+<p align="center">
+  <img src="docs/media/music.gif" alt="Notch com ondinhas, aviso de faixa nova e a bolinha dançando" width="760">
+</p>
+
+### 🎧 Só música, nada de barulho
+
+A batida é **o som de verdade**: o Foquinho analisa o áudio que está saindo (e, quando dá, só o do player,
+sem os sons de notificação). E ele só aparece para **música**:
+
+| Fonte | Aparece? |
+|---|---|
+| Spotify, Rhythmbox, Elisa, Strawberry, Audacious, Tidal, Cider e outros apps de música | ✅ sempre |
+| Navegador no Spotify Web, YouTube Music, SoundCloud, Deezer, Bandcamp… | ✅ |
+| Navegador em qualquer outro site (vídeos, WhatsApp Web tocando notificação…) | ❌ ignorado |
+| VLC / mpv | ✅ só arquivos de áudio |
+
+Não curtiu? Dá pra desligar em *Ajustes › Mostrar a música tocando*.
+
+---
+
+## 🖥️ No monitor que você quiser
+
+Tem mais de uma tela? Nos ajustes, a seção **Monitor** mostra cada tela conectada: é só escolher.
+Ou aperte <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> de qualquer lugar e ele pula pro próximo monitor, dando um “Cheguei!”.
+A escolha fica salva, e **Principal** faz ele sempre seguir o seu monitor principal.
+
+Se o monitor dele desligar ou for desconectado, o notch se muda sozinho pro principal e volta quando a tela voltar.
+
+---
+
 ## 🐾 Conheça o Foquinho
 
 Gato, fantasma ou slime: escolha o seu. Ele reage a tudo que acontece e tem várias manias para parecer vivo.
@@ -122,6 +185,10 @@ Quando o app abre (e uma vez por dia), o Foquinho manda um balãozinho com os at
 | <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> | Abrir / fechar o painel |
 | <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>H</kbd> | Esconder numa bolinha / mostrar |
 | <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd> | Concluir a demanda em foco |
+| <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> | Mover o notch pro próximo monitor |
+| <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd> | Música: tocar / pausar |
+| <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>.</kbd> | Música: próxima |
+| <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>,</kbd> | Música: anterior |
 
 Eles ficam registrados no KDE: dá pra trocar em *Configurações do Sistema › Teclado › Atalhos › Foquinho*.
 
@@ -138,6 +205,8 @@ Eles ficam registrados no KDE: dá pra trocar em *Configurações do Sistema ›
         <li>Ligue ou desligue a fila automática</li>
         <li>Inicie junto com o sistema</li>
         <li>Ative ou não o balão de dicas</li>
+        <li>Mostre ou esconda a música tocando</li>
+        <li>Escolha em qual monitor ele fica</li>
         <li>A cor de destaque segue a do KDE automaticamente</li>
       </ul>
     </td>
@@ -151,7 +220,7 @@ Eles ficam registrados no KDE: dá pra trocar em *Configurações do Sistema ›
 Feito para **KDE Plasma 6 em Wayland** (testado no EndeavourOS / Arch). As dependências já vêm com o Plasma:
 
 ```bash
-sudo pacman -S --needed base-devel qt6-base qt6-declarative layer-shell-qt kglobalaccel
+sudo pacman -S --needed base-devel qt6-base qt6-declarative layer-shell-qt kglobalaccel libpulse
 ```
 
 Clone, compile e instale (sem CMake: só `g++`, `moc` e `rcc` do Qt):
@@ -170,6 +239,9 @@ Isso instala em `~/.local` o binário `foco-max`, o ícone e o atalho no menu. A
 
 Para desinstalar: `make uninstall`.
 
+> 🎧 O `libpulse` traz o `parec`, usado para as ondinhas seguirem a batida (funciona com PipeWire).
+> Sem ele a música aparece normalmente, só as ondas ficam paradas.
+
 > 💡 O tema WhiteSur é opcional: o Foquinho funciona em qualquer tema do Plasma, mas foi desenhado para combinar com ele.
 
 ---
@@ -186,6 +258,9 @@ foco-max focus "Ligar pro João"  # adiciona direto em foco
 foco-max done                    # conclui a demanda em foco
 foco-max pause                   # pausa / retoma tudo
 foco-max hide | show | toggle | quit
+foco-max play | next | prev      # controla a música tocando
+foco-max screen next             # pula pro próximo monitor
+foco-max screen HDMI-A-1         # vai pra uma tela específica (ou: screen primary)
 ```
 
 ---
@@ -200,6 +275,9 @@ foco-max hide | show | toggle | quit
 │  KGlobalAccel  → atalhos globais registrados no KDE         │
 │  kdeglobals    → cor de destaque ao vivo                    │
 │  QLocalServer  → instância única + comandos via CLI         │
+│  QScreen       → escolhe o monitor e remapeia no hotplug    │
+│  MPRIS (D-Bus) → player de música, filtrado para só música  │
+│  parec + FFT   → 24 bandas e detecção de batida, ao vivo    │
 │  state.json    → ~/.local/share/foco-max/                   │
 └─────────────────────────────┬──────────────────────────────┘
                               │
@@ -207,6 +285,7 @@ foco-max hide | show | toggle | quit
 │  Store.qml   estado, cronômetros, fila e persistência       │
 │  Main.qml    o notch e suas animações de mola               │
 │  Pet.qml     o mascote em vetor, com expressões e reações   │
+│  MusicCard   o DVD, os controles e o equalizador            │
 │  …           painel, fila arrastável, balão, ajustes        │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -218,11 +297,12 @@ o tempo conta só até a última vez em que o app esteve vivo.
 
 ## 🎬 Sobre as demos
 
-Todas as imagens e GIFs deste README foram gerados pelo próprio código, com a interface real e dados fictícios,
+Todas as imagens e GIFs deste README foram gerados pelo próprio código, com a interface real e dados fictícios
+(inclusive as músicas e capas do modo música),
 por um gravador roteirizado que simula mouse e teclado:
 
 ```bash
-python3 tools/demo/record.py hero panel hide tip pets   # GIFs
+python3 tools/demo/record.py hero panel hide tip pets music music-panel   # GIFs
 QT_SCALE_FACTOR=2 python3 tools/demo/record.py stills banner   # imagens em alta resolução
 ```
 

@@ -14,6 +14,13 @@ Column {
     visible: opacity > 0.01
     Behavior on opacity { NumberAnimation { duration: 200 } }
 
+    MusicCard {
+        width: parent.width
+        height: implicitHeight
+        visible: Media.active
+    }
+    Item { width: 1; height: 2; visible: Media.active }
+
     SectionLabel {
         width: parent.width
         label: "EM FOCO"

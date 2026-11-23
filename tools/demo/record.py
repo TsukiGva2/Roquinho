@@ -5,7 +5,7 @@ Roda a interface QML real com um Backend falso e dados de demonstração,
 simula mouse/teclado, captura os quadros e gera GIFs/PNGs em docs/media/.
 
 Uso:  python3 tools/demo/record.py <cena> [<cena> ...]
-Cenas: banner hero panel hide tip pets stills
+Cenas: banner hero panel hide tip pets stills music music-panel
 (stills e banner ficam melhores com QT_SCALE_FACTOR=2)
 Requer: PySide6, ffmpeg.
 """
@@ -80,6 +80,178 @@ class FakeBackend(QObject):
 
     @Slot()
     def quit(self):
+        pass
+
+    # monitores (um só na demo)
+    screensChanged = Signal()
+    screenNameChanged = Signal()
+    currentScreenChanged = Signal()
+
+    def _get_screens(self):
+        return [{"name": "eDP-1", "label": "Notebook", "primary": True}]
+
+    screens = Property("QVariantList", _get_screens, notify=screensChanged)
+
+    def _get_screen_name(self):
+        return ""
+
+    def _set_screen_name(self, _v):
+        pass
+
+    screenName = Property(str, _get_screen_name, _set_screen_name, notify=screenNameChanged)
+
+    def _get_current_screen(self):
+        return "eDP-1"
+
+    currentScreen = Property(str, _get_current_screen, notify=currentScreenChanged)
+
+    @Slot()
+    def nextScreen(self):
+        pass
+
+
+# --------------------------------------------------------------------------- player falso
+def paint_cover(path, c1, c2, c3):
+    """Capa fictícia: céu em degradê, sol listrado e montanhas."""
+    n = 512
+    img = QImage(n, n, QImage.Format_ARGB32_Premultiplied)
+    p = QPainter(img)
+    p.setRenderHint(QPainter.Antialiasing)
+    g = QLinearGradient(0, 0, 0, n)
+    g.setColorAt(0, QColor(c1))
+    g.setColorAt(1, QColor(c2))
+    p.fillRect(0, 0, n, n, g)
+    p.setPen(Qt.NoPen)
+    p.setBrush(QColor(c3))
+    p.drawEllipse(QPointF(n / 2, n * 0.52), n * 0.26, n * 0.26)
+    p.setBrush(QColor(c2))
+    for i in range(5):
+        p.drawRect(QRectF(0, n * 0.5 + i * n * 0.045, n, n * 0.012 + i * 3))
+    path_m = QPainterPath()
+    path_m.moveTo(0, n)
+    path_m.lineTo(0, n * 0.72)
+    path_m.lineTo(n * 0.3, n * 0.58)
+    path_m.lineTo(n * 0.55, n * 0.74)
+    path_m.lineTo(n * 0.8, n * 0.6)
+    path_m.lineTo(n, n * 0.7)
+    path_m.lineTo(n, n)
+    p.setBrush(QColor(20, 14, 40, 235))
+    p.drawPath(path_m)
+    p.end()
+    img.save(path)
+
+
+class FakeMedia(QObject):
+    enabledChanged = Signal()
+    trackChanged = Signal()
+    playingChanged = Signal()
+    artChanged = Signal()
+    positionChanged = Signal()
+    capsChanged = Signal()
+    visualizeChanged = Signal()
+    levelsChanged = Signal()
+    newTrack = Signal()
+
+    TRACKS = [("Neon na Avenida", "Lua Azul", "#ff9a6b", "#b048d8", 214000, ("#2b1a6b", "#ff6f91", "#ffd36b")),
+              ("Maré Alta", "Os Cometas", "#5fe3c8", "#3d7cf0", 187000, ("#0b3d5c", "#2ec4b6", "#f6f7c4"))]
+
+    def __init__(self, active=False):
+        super().__init__()
+        self._active = active
+        self._playing = active
+        self._i = 0
+        self._dir = tempfile.mkdtemp(prefix="foquinho-capas-")
+        self._arts = []
+        for k, t in enumerate(self.TRACKS):
+            fn = os.path.join(self._dir, "capa%d.png" % k)
+            paint_cover(fn, *t[5])
+            self._arts.append(QUrl.fromLocalFile(fn).toString())
+        self._pos = 71000.0
+        self._stamp = time.time() * 1000
+        self._levels = [0.0] * 24
+        self._level = 0.0
+        self._beat = 0.0
+        self._clock = QElapsedTimer()
+        self._clock.start()
+        self._timer = QTimer(self)
+        self._timer.setInterval(33)
+        self._timer.timeout.connect(self._tick)
+        self._timer.start()
+
+    def _tick(self):
+        # espectro sintético a 118 bpm, com graves batendo e agudos cintilando
+        t = self._clock.elapsed() / 1000.0
+        period = 60.0 / 118
+        ph = (t % period) / period
+        kick = math.exp(-ph * 9)
+        on = 1.0 if self._playing and self._active else 0.0
+        out = []
+        for b in range(24):
+            wob = 0.5 + 0.5 * math.sin(t * (3.1 + b * 0.37) + b * 1.7) * math.sin(t * 1.3 + b)
+            v = (0.18 + 0.42 * wob) * (1 - b / 40) + (kick * (0.75 - b * 0.05) if b < 8 else 0)
+            v = max(0.0, min(1.0, v)) * on
+            prev = self._levels[b]
+            out.append(prev + (v - prev) * 0.6 if v > prev else prev * 0.8 + v * 0.2)
+        self._levels = out
+        self._level = sum(out) / 24
+        self._beat = kick * on if kick > 0.2 else self._beat * 0.86
+        self.levelsChanged.emit()
+
+    def _track(self):
+        return self.TRACKS[self._i]
+
+    def _get_enabled(self): return True
+    def _set_enabled(self, _v): pass
+    enabled = Property(bool, _get_enabled, _set_enabled, notify=enabledChanged)
+    active = Property(bool, lambda self: self._active, notify=trackChanged)
+    playing = Property(bool, lambda self: self._playing and self._active, notify=playingChanged)
+    title = Property(str, lambda self: self._track()[0], notify=trackChanged)
+    artist = Property(str, lambda self: self._track()[1], notify=trackChanged)
+    album = Property(str, lambda self: "", notify=trackChanged)
+    player = Property(str, lambda self: "Spotify", notify=trackChanged)
+    art = Property(str, lambda self: self._arts[self._i], notify=artChanged)
+    color = Property(QColor, lambda self: QColor(self._track()[2]), notify=artChanged)
+    color2 = Property(QColor, lambda self: QColor(self._track()[3]), notify=artChanged)
+    length = Property(float, lambda self: float(self._track()[4]), notify=trackChanged)
+    position = Property(float, lambda self: self._pos, notify=positionChanged)
+    positionStamp = Property(float, lambda self: self._stamp, notify=positionChanged)
+    canNext = Property(bool, lambda self: True, notify=capsChanged)
+    canPrevious = Property(bool, lambda self: True, notify=capsChanged)
+    canSeek = Property(bool, lambda self: True, notify=capsChanged)
+    def _get_vis(self): return True
+    def _set_vis(self, _v): pass
+    visualize = Property(bool, _get_vis, _set_vis, notify=visualizeChanged)
+    levels = Property("QVariantList", lambda self: self._levels, notify=levelsChanged)
+    level = Property(float, lambda self: self._level, notify=levelsChanged)
+    beat = Property(float, lambda self: self._beat, notify=levelsChanged)
+
+    @Slot()
+    def playPause(self):
+        self._playing = not self._playing
+        self.playingChanged.emit()
+
+    @Slot()
+    def next(self):
+        self._i = (self._i + 1) % len(self.TRACKS)
+        self._pos = 0.0
+        self._stamp = time.time() * 1000
+        self.trackChanged.emit()
+        self.artChanged.emit()
+        self.positionChanged.emit()
+        self.newTrack.emit()
+
+    @Slot()
+    def previous(self):
+        self.next()
+
+    @Slot(float)
+    def seek(self, ms):
+        self._pos = ms
+        self._stamp = time.time() * 1000
+        self.positionChanged.emit()
+
+    @Slot(name="raise")
+    def raise_(self):
         pass
 
 
@@ -187,13 +359,15 @@ def draw_cursor(p, pos, pressed):
 
 # --------------------------------------------------------------------------- gravação
 class Recorder(QObject):
-    def __init__(self, app, qml, state, canvas_h, canvas_w=960, fps=30, scale=1.0, props=None, show=True):
+    def __init__(self, app, qml, state, canvas_h, canvas_w=960, fps=30, scale=1.0, props=None, show=True, music=False):
         super().__init__()
         self.app = app
         self.canvas_w, self.canvas_h, self.fps, self.scale = canvas_w, canvas_h, fps, scale
         self.backend = FakeBackend(state)
         self.engine = QQmlApplicationEngine()
         self.engine.rootContext().setContextProperty("Backend", self.backend)
+        self.media = FakeMedia(active=music)
+        self.engine.rootContext().setContextProperty("Media", self.media)
         self.engine.load(QUrl.fromLocalFile(qml))
         if not self.engine.rootObjects():
             sys.exit("falha ao carregar " + qml)
@@ -392,6 +566,25 @@ def scene_stills(app):
     r3.save_png("settings.png")
 
 
+def scene_music(app):
+    # notch com as ondinhas → troca de faixa (aviso com o DVD) → bolinha dançando
+    r = Recorder(app, MAIN, demo_state(), canvas_h=120, music=True)
+    r.cursor = (640, 105)
+    r.at(2600, r.media.next)
+    r.cmd(6800, "hide")
+    r.run(1000, 10800)
+    r.save_gif("music.gif", width=760)
+
+
+def scene_music_panel(app):
+    # painel aberto: DVD girando, equalizador e troca de música
+    r = Recorder(app, MAIN, demo_state(), canvas_h=330, music=True)
+    r.cmd(900, "open")
+    r.at(5200, r.media.next)
+    r.run(2000, 9400)
+    r.save_gif("music-panel.gif")
+
+
 def scene_pets(app):
     qml = os.path.join(ROOT, "tools", "demo", "Pets.qml")
     r = Recorder(app, qml, demo_state(), canvas_h=0)
@@ -425,7 +618,7 @@ def scene_banner(app):
 
 
 SCENES = {"banner": scene_banner, "hero": scene_hero, "panel": scene_panel, "hide": scene_hide, "tip": scene_tip,
-          "stills": scene_stills, "pets": scene_pets}
+          "stills": scene_stills, "pets": scene_pets, "music": scene_music, "music-panel": scene_music_panel}
 
 if __name__ == "__main__":
     names = sys.argv[1:] or list(SCENES)

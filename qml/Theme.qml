@@ -6,6 +6,8 @@ import QtQuick.Shapes
 QtObject {
     readonly property color accent: Store.backend ? Store.backend.accent : "#926ee4"
     readonly property color accentText: Qt.lighter(accent, 1.35)
+    // cor da música tocando (tirada da capa); sem capa, o destaque do KDE
+    readonly property color music: Store.media && Store.media.active && Store.media.color.valid ? Store.media.color : accent
 
     readonly property color notch: "#000000"
     readonly property color card: "#1c1c1e"

@@ -20,7 +20,8 @@ Item {
         }
     }
 
-    readonly property color tone: last.kind === "done" ? Theme.green : Theme.accent
+    readonly property bool isMusic: last.kind === "music"
+    readonly property color tone: last.kind === "done" ? Theme.green : isMusic ? Theme.music : Theme.accent
 
     Pet {
         id: pet
@@ -28,7 +29,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         size: 40
         kind: Store.petKind
-        mood: av.last.kind === "done" ? "happy" : Store.petMood
+        mood: av.last.kind === "done" || av.isMusic ? "happy" : Store.petMood
         animated: av.visible
     }
 
@@ -61,9 +62,16 @@ Item {
         anchors.right: parent.right
         anchors.rightMargin: 18
         anchors.verticalCenter: parent.verticalCenter
-        width: 30; height: 30; radius: 15
-        color: av.tone
+        width: av.isMusic ? 40 : 30; height: width; radius: width / 2
+        color: av.isMusic ? "transparent" : av.tone
+        Disc {
+            visible: av.isMusic
+            anchors.centerIn: parent
+            size: 40
+            spinning: Media.playing && av.visible
+        }
         Icon {
+            visible: !av.isMusic
             anchors.centerIn: parent
             name: av.last.kind === "done" ? "check" : av.last.kind === "added" ? "plus" : "sparkle"
             size: 16

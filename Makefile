@@ -9,7 +9,7 @@ RCC        := /usr/lib/qt6/rcc
 PREFIX     ?= $(HOME)/.local
 
 QML_FILES  := $(wildcard qml/*.qml) qml/qmldir
-OBJS       := build/main.o build/backend.o build/moc_backend.o build/qrc_resources.o
+OBJS       := build/main.o build/backend.o build/media.o build/moc_backend.o build/moc_media.o build/qrc_resources.o
 TARGET     := build/foco-max
 
 all: $(TARGET)
@@ -17,16 +17,16 @@ all: $(TARGET)
 build:
 	@mkdir -p build
 
-build/moc_backend.cpp: src/backend.h | build
+build/moc_%.cpp: src/%.h | build
 	$(MOC) $< -o $@
 
 build/qrc_resources.cpp: resources.qrc $(QML_FILES) | build
 	$(RCC) --name resources $< -o $@
 
-build/%.o: src/%.cpp src/backend.h | build
+build/%.o: src/%.cpp src/backend.h src/media.h | build
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-build/moc_backend.o: build/moc_backend.cpp
+build/moc_%.o: build/moc_%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 build/qrc_resources.o: build/qrc_resources.cpp

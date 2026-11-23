@@ -8,6 +8,10 @@ Item {
 
     readonly property bool hasFocus: Store.focusModel.count > 0
     readonly property real controlsW: hovered && hasFocus ? 62 : 0
+    // ondinhas da música na pontinha direita do notch
+    readonly property bool musicOn: Media.active && Media.playing
+    property real musicW: musicOn ? 24 : 0
+    Behavior on musicW { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
 
     property int cycle: 0
     property int shownIdx: 0
@@ -21,8 +25,8 @@ Item {
     implicitHeight: 38
     implicitWidth: hasFocus
         ? Math.max(250, 14 + pet.width + 9 + Math.min(titleText.implicitWidth, 230) + (badge.visible ? badge.width + 8 : 0)
-                         + 22 + controlsW + timerText.implicitWidth + 16)
-        : (hovered ? 226 : 212)
+                         + 22 + controlsW + timerText.implicitWidth + 16 + musicW)
+        : (hovered ? 226 : 212) + musicW
 
     opacity: shown ? 1 : 0
     visible: opacity > 0.01
@@ -109,7 +113,7 @@ Item {
         Text {
             id: timerText
             anchors.right: parent.right
-            anchors.rightMargin: 16
+            anchors.rightMargin: 16 + cv.musicW
             anchors.verticalCenter: parent.verticalCenter
             text: Store.fmt(cv.elapsed)
             color: cv.running ? Theme.accentText : Theme.text2
@@ -175,11 +179,24 @@ Item {
         }
         Icon {
             anchors.right: parent.right
-            anchors.rightMargin: 16
+            anchors.rightMargin: 16 + cv.musicW
             anchors.verticalCenter: parent.verticalCenter
             name: "plus"
             size: 15
             color: cv.hovered ? Theme.text : Theme.text3
         }
+    }
+
+    MiniBars {
+        anchors.right: parent.right
+        anchors.rightMargin: 15
+        anchors.verticalCenter: parent.verticalCenter
+        bands: [3, 1, 7, 12]
+        barWidth: 2.6
+        minH: 3
+        maxH: 15
+        opacity: cv.musicOn ? 1 : 0
+        visible: opacity > 0.01
+        Behavior on opacity { NumberAnimation { duration: 260 } }
     }
 }

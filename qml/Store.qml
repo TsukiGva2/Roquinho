@@ -6,6 +6,7 @@ QtObject {
     id: store
 
     property var backend: null
+    property var media: null
 
     property ListModel focusModel: ListModel {}
     property ListModel queueModel: ListModel {}
@@ -25,6 +26,7 @@ QtObject {
     property bool hidden: false
     property int totalDone: 0
     property bool tipsEnabled: true
+    property bool musicEnabled: true
     property string lastTipDay: ""
     property bool tipTalking: false
 
@@ -46,6 +48,7 @@ QtObject {
     onAutoAdvanceChanged: saveLater()
     onHiddenChanged: saveLater()
     onTipsEnabledChanged: saveLater()
+    onMusicEnabledChanged: saveLater()
     onLastTipDayChanged: saveLater()
 
     property Timer ticker: Timer {
@@ -70,6 +73,7 @@ QtObject {
 
     readonly property string petLine: {
         if (quip) return quip
+        if (petMood === "sleep" && media && media.playing) return "♪ Curtindo " + media.title + " com você"
         switch (petMood) {
         case "sleep": return queueModel.count > 0
                 ? "Zzz… tem " + queueModel.count + " na fila te esperando"
@@ -278,7 +282,7 @@ QtObject {
             version: 1,
             lastSeen: Date.now(),
             settings: { petKind: petKind, petName: petName, autoAdvance: autoAdvance, hidden: hidden,
-                        tipsEnabled: tipsEnabled, lastTipDay: lastTipDay },
+                        tipsEnabled: tipsEnabled, lastTipDay: lastTipDay, musicEnabled: musicEnabled },
             totalDone: totalDone,
             focus: modelToArray(focusModel),
             queue: modelToArray(queueModel),
@@ -299,6 +303,7 @@ QtObject {
                 if (s.autoAdvance !== undefined) autoAdvance = !!s.autoAdvance
                 hidden = !!s.hidden
                 if (s.tipsEnabled !== undefined) tipsEnabled = !!s.tipsEnabled
+                if (s.musicEnabled !== undefined) musicEnabled = !!s.musicEnabled
                 lastTipDay = s.lastTipDay || ""
                 totalDone = d.totalDone || 0
                 const n = Date.now()

@@ -17,3 +17,6 @@ SettingsPanel 1.0 SettingsPanel.qml
 Toggle 1.0 Toggle.qml
 SectionLabel 1.0 SectionLabel.qml
 TipBubble 1.0 TipBubble.qml
+Disc 1.0 Disc.qml
+MiniBars 1.0 MiniBars.qml
+MusicCard 1.0 MusicCard.qml

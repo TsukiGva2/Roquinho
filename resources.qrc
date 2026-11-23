@@ -3,6 +3,7 @@
     <file>qml/AlertView.qml</file>
     <file>qml/CollapsedView.qml</file>
     <file>qml/DoneSection.qml</file>
+    <file>qml/Disc.qml</file>
     <file>qml/Dot.qml</file>
     <file>qml/ExpandedView.qml</file>
     <file>qml/FocusCard.qml</file>
@@ -11,6 +12,8 @@
     <file>qml/InputField.qml</file>
     <file>qml/Main.qml</file>
     <file>qml/MainSections.qml</file>
+    <file>qml/MiniBars.qml</file>
+    <file>qml/MusicCard.qml</file>
     <file>qml/NotchShape.qml</file>
     <file>qml/Pet.qml</file>
     <file>qml/QueueList.qml</file>

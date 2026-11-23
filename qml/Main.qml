@@ -134,6 +134,7 @@ Window {
 
     Component.onCompleted: {
         Store.backend = Backend
+        Store.media = Media
         Store.load()
         bootTimer.start()
         tipStartup.start()
@@ -161,8 +162,30 @@ Window {
             case "show": Store.hidden = false; break
             case "done": Store.completeFirst(); break
             case "pause": Store.toggleAll(); break
+            case "play": Media.playPause(); break
+            case "next": Media.next(); break
+            case "prev": Media.previous(); break
             case "quit": win.quitApp(); break
             }
+        }
+    }
+
+    Binding { target: Media; property: "enabled"; value: Store.musicEnabled; when: Store.loaded }
+
+    Connections {
+        target: Media
+        function onNewTrack() {
+            win.showAlert({ kind: "music", title: Media.title, sub: Media.artist ? Media.artist : Media.player }, 3200)
+        }
+    }
+
+    Connections {
+        target: Backend
+        function onCurrentScreenChanged() {
+            if (!win.booted) return
+            let label = Backend.currentScreen
+            for (const s of Backend.screens) if (s.name === Backend.currentScreen) label = s.label
+            win.showAlert({ kind: "info", title: "Cheguei!", sub: "Agora no monitor " + label }, 2200)
         }
     }
 
@@ -181,7 +204,7 @@ Window {
     function updateMask() {
         const rects = []
         if (hiddenMode) {
-            rects.push(Qt.rect(win.width / 2 - 18, 4, 36, 36))
+            rects.push(Qt.rect(win.width / 2 - 23, 2, 46, 46))
         } else {
             const w = Math.max(targetW, 8) + 2 * 12 + 8
             const h = Math.max(targetH, 6) + 4
@@ -291,7 +314,7 @@ Window {
 
         Dot {
             x: Math.round((win.width - width) / 2)
-            y: 5
+            y: Math.round(22 - height / 2)
             shown: win.hiddenMode && win.booted
             onClicked: Store.hidden = false
         }
