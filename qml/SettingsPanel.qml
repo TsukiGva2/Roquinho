@@ -239,7 +239,7 @@ Column {
             width: parent.width - 28
             spacing: 2
             Repeater {
-                model: [["N", "Nova demanda"], ["F", "Abrir / fechar painel"], ["H", "Esconder em bolinha"], ["D", "Concluir demanda em foco"], ["M", "Mover pro próximo monitor"], ["P", "Tocar / pausar música"], [".", "Próxima música"], [",", "Música anterior"]]
+                model: [["N", "Nova demanda"], ["F", "Abrir / fechar painel"], ["H", "Esconder em bolinha"], ["D", "Concluir demanda em foco"], ["M", "Mover pro próximo monitor"], ["Espaço", "Tocar / pausar música"], [".", "Próxima música"], [",", "Música anterior"]]
                 Item {
                     required property var modelData
                     width: shortcutsCol.width

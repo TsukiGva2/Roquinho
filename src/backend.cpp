@@ -291,7 +291,8 @@ void Backend::setupShortcuts()
         {"toggle-hide", "Esconder/mostrar (bolinha)", QKeySequence(Qt::META | Qt::ALT | Qt::Key_H), "hide"},
         {"complete", "Concluir demanda em foco", QKeySequence(Qt::META | Qt::ALT | Qt::Key_D), "done"},
         {"next-screen", "Mover para o próximo monitor", QKeySequence(Qt::META | Qt::ALT | Qt::Key_M), "screen"},
-        {"music-play", "Música: tocar / pausar", QKeySequence(Qt::META | Qt::ALT | Qt::Key_P), "play"},
+        // Meta+Alt+P é do Plasma (focar painéis); o id mudou para não herdar o atalho antigo salvo
+        {"music-toggle", "Música: tocar / pausar", QKeySequence(Qt::META | Qt::ALT | Qt::Key_Space), "play"},
         {"music-next", "Música: próxima", QKeySequence(Qt::META | Qt::ALT | Qt::Key_Period), "next"},
         {"music-prev", "Música: anterior", QKeySequence(Qt::META | Qt::ALT | Qt::Key_Comma), "prev"},
     };
@@ -305,6 +306,8 @@ void Backend::setupShortcuts()
         const QString cmd = QString::fromLatin1(d.cmd);
         connect(action, &QAction::triggered, this, [this, cmd] { runCommand(cmd, QString()); });
     }
+    // remove do KDE atalhos de versões antigas que não existem mais (ex.: music-play)
+    KGlobalAccel::cleanComponent(QStringLiteral("foco-max"));
 }
 
 QString Backend::statePath() const

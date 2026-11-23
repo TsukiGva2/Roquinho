@@ -186,7 +186,7 @@ Quando o app abre (e uma vez por dia), o Foquinho manda um balãozinho com os at
 | <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>H</kbd> | Esconder numa bolinha / mostrar |
 | <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd> | Concluir a demanda em foco |
 | <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> | Mover o notch pro próximo monitor |
-| <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd> | Música: tocar / pausar |
+| <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>Espaço</kbd> | Música: tocar / pausar |
 | <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>.</kbd> | Música: próxima |
 | <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>,</kbd> | Música: anterior |
 
