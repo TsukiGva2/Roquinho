@@ -121,7 +121,7 @@ Item {
             width: parent.width
             spacing: 5
             Repeater {
-                model: [["N", "Nova demanda"], ["F", "Abrir / fechar o painel"], ["H", "Me esconder numa bolinha"], ["D", "Concluir o que está em foco"]]
+                model: [["N", "Nova demanda", "add"], ["F", "Abrir / fechar o painel", "toggle"], ["H", "Me esconder numa bolinha", "hide"], ["D", "Concluir o que está em foco", "done"]]
                 Item {
                     id: tipRow
                     required property var modelData
@@ -136,7 +136,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 3
                         Repeater {
-                            model: ["Meta", "Alt", tipRow.modelData[0]]
+                            model: Store.keysFor(tipRow.modelData[2], tipRow.modelData[0])
                             Rectangle {
                                 required property string modelData
                                 required property int index

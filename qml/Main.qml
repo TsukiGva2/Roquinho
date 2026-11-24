@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 
-// Janela transparente (layer-shell, camada overlay) ancorada no topo da tela.
+// Janela transparente ancorada no topo da tela (layer-shell no KDE, dock no X11/Openbox).
 // Só a área visível do notch recebe cliques; o resto passa direto para o desktop.
 Window {
     id: win
@@ -216,8 +216,37 @@ Window {
     }
     onTargetWChanged: Qt.callLater(updateMask)
     onTargetHChanged: Qt.callLater(updateMask)
-    onHiddenModeChanged: Qt.callLater(updateMask)
+    onHiddenModeChanged: { Qt.callLater(updateMask); Qt.callLater(updateShape) }
     onTipShownChanged: Qt.callLater(updateMask)
+
+    // ---------- X11 sem compositor (Openbox puro, sem picom) ----------
+    // Sem transparência de verdade, a própria janela é recortada no contorno do notch,
+    // acompanhando a animação de mola quadro a quadro. No KDE e com compositor, nada disso roda.
+    readonly property bool shaped: Backend.needsShape
+    function updateShape() {
+        if (!shaped) return
+        const s = []
+        if (notch.visible)
+            s.push({ x: notch.x + notch.ear, y: 0, w: win.curW, h: notch.height,
+                     r: win.curR, ear: notch.ear, roundTop: false })
+        if (dot.shown)
+            s.push({ x: win.width / 2 - 23, y: -1, w: 46, h: 46, r: 23, roundTop: true })
+        if (tip.visible) {
+            // mesma escala de entrada do balão (origem na ponta do rabinho)
+            const k = 0.4 + 0.6 * tip.appear
+            const ox = tip.x + tip.tailX
+            s.push({ x: ox - tip.tailX * k, y: tip.y + tip.tailH * k, w: tip.width * k,
+                     h: (tip.height - tip.tailH) * k + 2, r: 15 * k, roundTop: true })
+            // rabinho: fino na ponta, mais largo na base
+            s.push({ x: ox - 1.5 * k, y: tip.y + 1, w: 3 * k, h: tip.tailH * 0.5 * k, r: 0 })
+            s.push({ x: ox - 4.5 * k, y: tip.y + tip.tailH * 0.5 * k, w: 9 * k, h: tip.tailH * 0.5 * k + 1, r: 0 })
+        }
+        Backend.setShape(s)
+    }
+    onCurWChanged: if (shaped) Qt.callLater(updateShape)
+    onCurHChanged: if (shaped) Qt.callLater(updateShape)
+    onCurRChanged: if (shaped) Qt.callLater(updateShape)
+    onShapedChanged: Qt.callLater(updateShape)
 
     // ---------- visual ----------
     Item {
@@ -308,14 +337,17 @@ Window {
             onTypingChanged: (typing) => Store.tipTalking = typing
             onOkClicked: win.answerTip(false)
             onNeverClicked: win.answerTip(true)
-            onXChanged: if (win.tipShown) Qt.callLater(win.updateMask)
-            onHeightChanged: if (win.tipShown) Qt.callLater(win.updateMask)
+            onXChanged: { if (win.tipShown) Qt.callLater(win.updateMask); if (win.shaped) Qt.callLater(win.updateShape) }
+            onHeightChanged: { if (win.tipShown) Qt.callLater(win.updateMask); if (win.shaped) Qt.callLater(win.updateShape) }
+            onAppearChanged: if (win.shaped) Qt.callLater(win.updateShape)
         }
 
         Dot {
+            id: dot
             x: Math.round((win.width - width) / 2)
             y: Math.round(22 - height / 2)
             shown: win.hiddenMode && win.booted
+            onShownChanged: if (win.shaped) Qt.callLater(win.updateShape)
             onClicked: Store.hidden = false
         }
     }

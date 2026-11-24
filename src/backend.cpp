@@ -1,7 +1,8 @@
 #include "backend.h"
+#include "platform.h"
 
-#include <QAction>
 #include <algorithm>
+#include <cmath>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -16,9 +17,6 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTextStream>
-
-#include <KGlobalAccel>
-#include <LayerShellQt/Window>
 
 namespace {
 
@@ -50,11 +48,85 @@ QString installedBinary()
     return inPath.isEmpty() ? QCoreApplication::applicationFilePath() : inPath;
 }
 
+// Retângulo com cantos arredondados (só os de baixo, se roundTop = false) e as "orelhas"
+// côncavas do topo do notch, como região de pixels inteiros. Mesma curva do NotchShape.qml.
+QRegion notchRegion(qreal x, qreal y, qreal w, qreal h, qreal r, qreal ear, bool roundTop)
+{
+    QRegion out;
+    if (w < 1 || h < 1)
+        return out;
+    r = std::clamp(r, 0.0, std::min(w, h) / 2);
+    ear = std::max(0.0, ear);
+    const qreal earY = std::clamp(std::min(ear, h - r), 0.0, h);
+    int spanStart = 0, spanL = 0, spanR = 0;
+    bool open = false;
+    const int top = int(std::floor(y)), bottom = int(std::ceil(y + h));
+    for (int row = top; row <= bottom; ++row) {
+        int l = 0, rgt = 0;
+        bool has = row < bottom;
+        if (has) {
+            const qreal yc = row + 0.5 - y; // centro da linha, em coordenadas locais
+            qreal inset = 0;
+            if (r > 0 && yc > h - r) {
+                const qreal dy = yc - (h - r);
+                inset = r - std::sqrt(std::max(0.0, r * r - dy * dy));
+            } else if (roundTop && r > 0 && yc < r) {
+                const qreal dy = r - yc;
+                inset = r - std::sqrt(std::max(0.0, r * r - dy * dy));
+            }
+            qreal extra = 0;
+            if (earY > 0 && yc < earY) {
+                const qreal t = std::sqrt(std::max(0.0, yc / earY)); // curva quadrática do PathQuad
+                extra = ear * (1 - t) * (1 - t);
+            }
+            l = qRound(x + inset - extra);
+            rgt = qRound(x + w - inset + extra);
+            has = rgt > l;
+        }
+        if (open && (!has || l != spanL || rgt != spanR)) {
+            out += QRect(spanL, spanStart, spanR - spanL, row - spanStart);
+            open = false;
+        }
+        if (has && !open) {
+            spanStart = row;
+            spanL = l;
+            spanR = rgt;
+            open = true;
+        }
+    }
+    return out;
+}
+
+QStringList keyLabels(const QKeySequence &seq)
+{
+    if (seq.isEmpty())
+        return {QStringLiteral("—")};
+    const QKeyCombination combo = seq[0];
+    const Qt::KeyboardModifiers mods = combo.keyboardModifiers();
+    QStringList out;
+    if (mods & Qt::MetaModifier)
+        out << QStringLiteral("Meta");
+    if (mods & Qt::ControlModifier)
+        out << QStringLiteral("Ctrl");
+    if (mods & Qt::AltModifier)
+        out << QStringLiteral("Alt");
+    if (mods & Qt::ShiftModifier)
+        out << QStringLiteral("Shift");
+    out << (combo.key() == Qt::Key_Space ? QStringLiteral("Espaço")
+                                          : QKeySequence(combo.key()).toString(QKeySequence::NativeText));
+    return out;
+}
+
 } // namespace
 
 Backend::Backend(QObject *parent)
     : QObject(parent)
+    , m_platform(Platform::create(this))
 {
+    connect(m_platform, &Platform::shortcutActivated, this, [this](const QString &cmd) { runCommand(cmd, QString()); });
+    connect(m_platform, &Platform::needsShapeChanged, this, &Backend::needsShapeChanged);
+
+    m_accentChoice = QColor(QSettings(settingsPath(), QSettings::IniFormat).value(QStringLiteral("accent")).toString());
     reloadAccent();
 
     // O KDE regrava o kdeglobals de forma atômica, então observamos também o diretório.
@@ -97,9 +169,34 @@ QString Backend::serverName()
 void Backend::attachWindow(QQuickWindow *window)
 {
     m_window = window;
-    if (auto *layer = LayerShellQt::Window::get(window))
-        layer->setCloseOnDismissed(false); // nós mesmos remapeamos em outro monitor
+    window->setColor(Qt::transparent);
+    m_platform->setupWindow(window);
     placeWindow(false);
+}
+
+QString Backend::platform() const
+{
+    return m_platform->name();
+}
+
+bool Backend::needsShape() const
+{
+    return m_platform->needsShape();
+}
+
+QString Backend::shortcutsHint() const
+{
+    return m_platform->shortcutsHint();
+}
+
+void Backend::setAccentChoice(const QString &color)
+{
+    const QColor c(color);
+    if (c == m_accentChoice || (!c.isValid() && !m_accentChoice.isValid()))
+        return;
+    m_accentChoice = c;
+    QSettings(settingsPath(), QSettings::IniFormat).setValue(QStringLiteral("accent"), c.isValid() ? c.name() : QString());
+    emit accentChanged();
 }
 
 QString Backend::settingsPath() const
@@ -178,17 +275,7 @@ void Backend::placeWindow(bool remap)
     QScreen *screen = targetScreen();
     if (!m_window || !screen)
         return;
-    auto *layer = LayerShellQt::Window::get(m_window);
-    // A superfície layer-shell fica presa ao monitor em que foi criada:
-    // para trocar, desfaz o mapeamento e mapeia de novo no destino.
-    const bool wasVisible = m_window->isVisible();
-    if (remap && wasVisible)
-        m_window->hide();
-    m_window->setScreen(screen);
-    if (layer)
-        layer->setScreen(screen);
-    if (remap && wasVisible)
-        m_window->show();
+    m_platform->placeWindow(m_window, screen, remap);
     if (m_currentScreen != screen->name()) {
         m_currentScreen = screen->name();
         emit currentScreenChanged();
@@ -273,41 +360,27 @@ void Backend::reloadAccent()
         accent = QColor(49, 91, 239); // azul padrão do WhiteSur
     if (accent != m_accent) {
         m_accent = accent;
-        emit accentChanged();
+        if (!m_accentChoice.isValid())
+            emit accentChanged();
     }
 }
 
 void Backend::setupShortcuts()
 {
-    struct Def {
-        const char *id;
-        const char *text;
-        QKeySequence seq;
-        const char *cmd;
-    };
-    const Def defs[] = {
-        {"quick-add", "Nova demanda", QKeySequence(Qt::META | Qt::ALT | Qt::Key_N), "add"},
-        {"toggle-panel", "Abrir/fechar painel", QKeySequence(Qt::META | Qt::ALT | Qt::Key_F), "toggle"},
-        {"toggle-hide", "Esconder/mostrar (bolinha)", QKeySequence(Qt::META | Qt::ALT | Qt::Key_H), "hide"},
-        {"complete", "Concluir demanda em foco", QKeySequence(Qt::META | Qt::ALT | Qt::Key_D), "done"},
-        {"next-screen", "Mover para o próximo monitor", QKeySequence(Qt::META | Qt::ALT | Qt::Key_M), "screen"},
+    QList<Platform::Shortcut> defs = {
+        {QStringLiteral("quick-add"), QStringLiteral("Nova demanda"), QKeySequence(Qt::META | Qt::ALT | Qt::Key_N), QStringLiteral("add")},
+        {QStringLiteral("toggle-panel"), QStringLiteral("Abrir/fechar painel"), QKeySequence(Qt::META | Qt::ALT | Qt::Key_F), QStringLiteral("toggle")},
+        {QStringLiteral("toggle-hide"), QStringLiteral("Esconder/mostrar (bolinha)"), QKeySequence(Qt::META | Qt::ALT | Qt::Key_H), QStringLiteral("hide")},
+        {QStringLiteral("complete"), QStringLiteral("Concluir demanda em foco"), QKeySequence(Qt::META | Qt::ALT | Qt::Key_D), QStringLiteral("done")},
+        {QStringLiteral("next-screen"), QStringLiteral("Mover para o próximo monitor"), QKeySequence(Qt::META | Qt::ALT | Qt::Key_M), QStringLiteral("screen")},
         // Meta+Alt+P é do Plasma (focar painéis); o id mudou para não herdar o atalho antigo salvo
-        {"music-toggle", "Música: tocar / pausar", QKeySequence(Qt::META | Qt::ALT | Qt::Key_Space), "play"},
-        {"music-next", "Música: próxima", QKeySequence(Qt::META | Qt::ALT | Qt::Key_Period), "next"},
-        {"music-prev", "Música: anterior", QKeySequence(Qt::META | Qt::ALT | Qt::Key_Comma), "prev"},
+        {QStringLiteral("music-toggle"), QStringLiteral("Música: tocar / pausar"), QKeySequence(Qt::META | Qt::ALT | Qt::Key_Space), QStringLiteral("play")},
+        {QStringLiteral("music-next"), QStringLiteral("Música: próxima"), QKeySequence(Qt::META | Qt::ALT | Qt::Key_Period), QStringLiteral("next")},
+        {QStringLiteral("music-prev"), QStringLiteral("Música: anterior"), QKeySequence(Qt::META | Qt::ALT | Qt::Key_Comma), QStringLiteral("prev")},
     };
-    for (const Def &d : defs) {
-        auto *action = new QAction(QString::fromUtf8(d.text), this);
-        action->setObjectName(QString::fromLatin1(d.id));
-        action->setProperty("componentName", QStringLiteral("foco-max"));
-        action->setProperty("componentDisplayName", QStringLiteral("Foquinho"));
-        KGlobalAccel::self()->setDefaultShortcut(action, {d.seq});
-        KGlobalAccel::self()->setShortcut(action, {d.seq});
-        const QString cmd = QString::fromLatin1(d.cmd);
-        connect(action, &QAction::triggered, this, [this, cmd] { runCommand(cmd, QString()); });
-    }
-    // remove do KDE atalhos de versões antigas que não existem mais (ex.: music-play)
-    KGlobalAccel::cleanComponent(QStringLiteral("foco-max"));
+    m_platform->registerShortcuts(defs);
+    for (const Platform::Shortcut &s : std::as_const(defs))
+        m_shortcutKeys.insert(s.cmd, keyLabels(s.seq));
 }
 
 QString Backend::statePath() const
@@ -339,7 +412,7 @@ void Backend::setInputRect(qreal x, qreal y, qreal w, qreal h)
     if (!m_window)
         return;
     const QRect rect(qRound(x), qRound(y), qMax(1, qRound(w)), qMax(1, qRound(h)));
-    m_window->setMask(QRegion(rect));
+    m_platform->setInputRegion(m_window, QRegion(rect));
 }
 
 void Backend::setInputRegion(const QVariantList &rects)
@@ -354,19 +427,29 @@ void Backend::setInputRegion(const QVariantList &rects)
     }
     if (region.isEmpty())
         region = QRegion(0, 0, 1, 1); // máscara vazia = janela inteira clicável; evita isso
-    m_window->setMask(region);
+    m_platform->setInputRegion(m_window, region);
+}
+
+void Backend::setShape(const QVariantList &shapes)
+{
+    if (!m_window || !m_platform->needsShape())
+        return;
+    QRegion region;
+    for (const QVariant &v : shapes) {
+        const QVariantMap m = v.toMap();
+        region += notchRegion(m.value(QStringLiteral("x")).toReal(), m.value(QStringLiteral("y")).toReal(),
+                              m.value(QStringLiteral("w")).toReal(), m.value(QStringLiteral("h")).toReal(),
+                              m.value(QStringLiteral("r")).toReal(), m.value(QStringLiteral("ear")).toReal(),
+                              m.value(QStringLiteral("roundTop")).toBool());
+    }
+    m_platform->setShape(m_window, region);
 }
 
 void Backend::grabKeyboard(bool exclusive)
 {
     if (!m_window)
         return;
-    if (auto *layer = LayerShellQt::Window::get(m_window)) {
-        layer->setKeyboardInteractivity(exclusive ? LayerShellQt::Window::KeyboardInteractivityExclusive
-                                                  : LayerShellQt::Window::KeyboardInteractivityOnDemand);
-    }
-    if (exclusive)
-        m_window->requestActivate();
+    m_platform->grabKeyboard(m_window, exclusive);
 }
 
 QString Backend::autostartPath() const
@@ -391,17 +474,18 @@ void Backend::setAutostart(bool enabled)
                                         "[Desktop Entry]\n"
                                         "Type=Application\n"
                                         "Name=Foquinho\n"
-                                        "Comment=Notch de foco para o KDE\n"
+                                        "Comment=Notch de foco\n"
                                         "Exec=%1\n"
                                         "Icon=foco-max\n"
                                         "X-KDE-autostart-phase=2\n")
-                                        .arg(installedBinary());
+                                        .arg(m_platform->autostartExec(installedBinary()));
             file.write(content.toUtf8());
             file.commit();
         }
     } else {
         QFile::remove(autostartPath());
     }
+    m_platform->autostartChanged(enabled, installedBinary());
     emit autostartChanged();
 }
 

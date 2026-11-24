@@ -1,0 +1,31 @@
+<!--
+  Foquinho no menu do Openbox (clique direito na área de trabalho)
+
+  Cole o <menu> abaixo no ~/.config/openbox/menu.xml e, dentro do menu "root-menu",
+  adicione a linha  <menu id="foquinho-menu"/>  onde quiser que ele apareça.
+  Depois recarregue o Openbox (menu da área de trabalho › Reconfigure).
+-->
+<menu id="foquinho-menu" label="Foquinho">
+  <item label="Nova demanda">
+    <action name="Execute"><command>foco-max add</command></action>
+  </item>
+  <item label="Abrir / fechar painel">
+    <action name="Execute"><command>foco-max toggle</command></action>
+  </item>
+  <item label="Concluir a demanda em foco">
+    <action name="Execute"><command>foco-max done</command></action>
+  </item>
+  <item label="Pausar / retomar tudo">
+    <action name="Execute"><command>foco-max pause</command></action>
+  </item>
+  <item label="Esconder / mostrar">
+    <action name="Execute"><command>foco-max hide</command></action>
+  </item>
+  <separator/>
+  <item label="Iniciar o Foquinho">
+    <action name="Execute"><command>foco-max start</command></action>
+  </item>
+  <item label="Encerrar o Foquinho">
+    <action name="Execute"><command>foco-max quit</command></action>
+  </item>
+</menu>

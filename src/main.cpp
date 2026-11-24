@@ -1,5 +1,6 @@
 #include "backend.h"
 #include "media.h"
+#include "platform.h"
 
 #include <QGuiApplication>
 #include <QLocalSocket>
@@ -8,17 +9,17 @@
 #include <QQuickWindow>
 #include <QTimer>
 
-#include <LayerShellQt/Window>
-
 // Uso:
 //   foco-max                 inicia (ou abre o painel da instância que já roda)
 //   foco-max add [texto]     nova demanda (sem texto abre o campo de digitação)
 //   foco-max focus <texto>   cria a demanda direto em foco
 //   foco-max toggle|hide|show|done|quit
+//   foco-max start           inicia, sem abrir nada se já estiver rodando (autostart)
 //   foco-max screen [next|primary|<conector>]   move o notch de monitor
 //   foco-max play|next|prev                     controla a música tocando
 int main(int argc, char *argv[])
 {
+    Platform::preInit();
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("foco-max"));
     app.setApplicationDisplayName(QStringLiteral("Foquinho"));
@@ -56,16 +57,7 @@ int main(int argc, char *argv[])
     if (!window)
         return 1;
 
-    window->setColor(Qt::transparent);
-    if (auto *layer = LayerShellQt::Window::get(window)) {
-        layer->setScope(QStringLiteral("foco-max"));
-        layer->setLayer(LayerShellQt::Window::LayerOverlay); // acima de tudo, até de tela cheia
-        layer->setAnchors(LayerShellQt::Window::AnchorTop); // centralizado no topo
-        layer->setExclusiveZone(-1); // sobrepõe a barra superior em vez de ficar abaixo dela
-        layer->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityOnDemand);
-        layer->setActivateOnShow(false);
-    }
-    backend.attachWindow(window);
+    backend.attachWindow(window); // configura a janela para a plataforma (layer-shell ou X11)
     window->show();
 
     if (!commandLine.isEmpty()) {

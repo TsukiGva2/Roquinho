@@ -1,54 +1,95 @@
 # Foquinho — build sem CMake: g++ + moc + rcc do Qt6
+#
+#   make install                    KDE Plasma 6 / Wayland (padrão)
+#   make PLATFORM=openbox install   Openbox e outros gerenciadores X11 (sem KDE)
+PLATFORM   ?= kde
+ifeq ($(PLATFORM),x11)
+override PLATFORM := openbox
+endif
+
 QT_MODULES := Qt6Quick Qt6Qml Qt6Gui Qt6Core Qt6Network Qt6DBus
 CXX        ?= g++
-CXXFLAGS   += -O2 -std=c++17 -fPIC -Wall -Wextra -Isrc \
-              $(shell pkg-config --cflags $(QT_MODULES)) -I/usr/include/KF6/KGlobalAccel
-LDLIBS     += $(shell pkg-config --libs $(QT_MODULES)) -lLayerShellQtInterface -lKF6GlobalAccel
+PREFIX     ?= $(HOME)/.local
+DESTDIR    ?=
 MOC        := /usr/lib/qt6/moc
 RCC        := /usr/lib/qt6/rcc
-PREFIX     ?= $(HOME)/.local
+
+ifeq ($(PLATFORM),kde)
+PLAT_SRC   := src/platform_kde.cpp
+PLAT_FLAGS := -I/usr/include/KF6/KGlobalAccel
+PLAT_LIBS  := -lLayerShellQtInterface -lKF6GlobalAccel
+else ifeq ($(PLATFORM),openbox)
+PLAT_SRC   := src/platform_x11.cpp
+PLAT_FLAGS := $(shell pkg-config --cflags xcb xcb-shape)
+PLAT_LIBS  := $(shell pkg-config --libs xcb xcb-shape)
+else
+$(error PLATFORM deve ser kde ou openbox)
+endif
+
+B          := build/$(PLATFORM)
+CXXFLAGS   += -O2 -std=c++17 -fPIC -Wall -Wextra -Isrc \
+              $(shell pkg-config --cflags $(QT_MODULES)) $(PLAT_FLAGS)
+LDLIBS     += $(shell pkg-config --libs $(QT_MODULES)) $(PLAT_LIBS)
 
 QML_FILES  := $(wildcard qml/*.qml) qml/qmldir
-OBJS       := build/main.o build/backend.o build/media.o build/moc_backend.o build/moc_media.o build/qrc_resources.o
-TARGET     := build/foco-max
+HEADERS    := src/backend.h src/media.h src/platform.h
+OBJS       := $(B)/main.o $(B)/backend.o $(B)/media.o $(B)/platform.o \
+              $(B)/moc_backend.o $(B)/moc_media.o $(B)/moc_platform.o $(B)/qrc_resources.o
+TARGET     := $(B)/foco-max
 
 all: $(TARGET)
 
-build:
-	@mkdir -p build
+$(B):
+	@mkdir -p $(B)
 
-build/moc_%.cpp: src/%.h | build
+$(B)/moc_%.cpp: src/%.h | $(B)
 	$(MOC) $< -o $@
 
-build/qrc_resources.cpp: resources.qrc $(QML_FILES) | build
+$(B)/qrc_resources.cpp: resources.qrc $(QML_FILES) | $(B)
 	$(RCC) --name resources $< -o $@
 
-build/%.o: src/%.cpp src/backend.h src/media.h | build
+$(B)/platform.o: $(PLAT_SRC) $(HEADERS) | $(B)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-build/moc_%.o: build/moc_%.cpp
+$(B)/%.o: src/%.cpp $(HEADERS) | $(B)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-build/qrc_resources.o: build/qrc_resources.cpp
+$(B)/moc_%.o: $(B)/moc_%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(B)/qrc_resources.o: $(B)/qrc_resources.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(TARGET): $(OBJS)
 	$(CXX) -o $@ $^ $(LDLIBS)
 
 install: all
-	install -Dm755 $(TARGET) $(PREFIX)/bin/foco-max
-	install -Dm644 data/foco-max.svg $(PREFIX)/share/icons/hicolor/scalable/apps/foco-max.svg
-	sed "s|@BIN@|$(PREFIX)/bin/foco-max|g" data/foco-max.desktop.in > $(PREFIX)/share/applications/foco-max.desktop
-	-update-desktop-database $(PREFIX)/share/applications 2>/dev/null
+	install -Dm755 $(TARGET) $(DESTDIR)$(PREFIX)/bin/foco-max
+	install -Dm644 data/foco-max.svg $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps/foco-max.svg
+	install -d $(DESTDIR)$(PREFIX)/share/applications
+	sed "s|@BIN@|$(PREFIX)/bin/foco-max|g" data/foco-max.desktop.in > $(DESTDIR)$(PREFIX)/share/applications/foco-max.desktop
+ifeq ($(PLATFORM),openbox)
+	install -Dm644 data/openbox/rc.xml.exemplo $(DESTDIR)$(PREFIX)/share/foco-max/openbox/rc.xml.exemplo
+	install -Dm644 data/openbox/menu.xml.exemplo $(DESTDIR)$(PREFIX)/share/foco-max/openbox/menu.xml.exemplo
+endif
+	@if [ -z "$(DESTDIR)" ]; then update-desktop-database $(PREFIX)/share/applications 2>/dev/null || true; fi
 
 uninstall:
 	rm -f $(PREFIX)/bin/foco-max $(PREFIX)/share/applications/foco-max.desktop \
 	      $(PREFIX)/share/icons/hicolor/scalable/apps/foco-max.svg $(HOME)/.config/autostart/foco-max.desktop
+	rm -rf $(PREFIX)/share/foco-max
+	@if [ -f $(HOME)/.config/openbox/autostart ]; then sed -i '/# foquinho/d' $(HOME)/.config/openbox/autostart; fi
 
 run: all
 	./$(TARGET)
 
+# atalhos para a versão Openbox
+openbox:
+	$(MAKE) PLATFORM=openbox
+install-openbox:
+	$(MAKE) PLATFORM=openbox install
+
 clean:
 	rm -rf build
 
-.PHONY: all install uninstall run clean
+.PHONY: all install uninstall run clean openbox install-openbox

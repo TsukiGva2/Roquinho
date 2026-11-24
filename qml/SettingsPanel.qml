@@ -216,10 +216,76 @@ Column {
         width: parent.width - 8
         wrapMode: Text.WordWrap
         text: screenRow.screens.length > 1
-              ? "Ou puxe pro próximo monitor de qualquer lugar com Meta + Alt + M."
+              ? "Ou puxe pro próximo monitor de qualquer lugar com " + Store.keysFor("screen", "M").join(" + ") + "."
               : "Só um monitor conectado agora. Quando ligar outro, ele aparece aqui."
         color: Theme.text3
         font.pixelSize: 11
+    }
+
+    // Fora do KDE não há cor de destaque do sistema para seguir: a pessoa escolhe aqui.
+    Item { width: 1; height: 2; visible: accentRow.visible }
+    SectionLabel { width: parent.width; label: "COR DE DESTAQUE"; visible: accentRow.visible }
+
+    Rectangle {
+        id: accentRow
+        visible: !!Store.backend && Store.backend.platform === "x11"
+        readonly property string chosen: Store.backend ? Store.backend.accentChoice : ""
+        width: parent.width
+        height: 50
+        radius: 14
+        color: Theme.card
+        border.width: 1
+        border.color: Theme.stroke
+        Row {
+            anchors.centerIn: parent
+            spacing: 12
+            Repeater {
+                // "" = automático (kdeglobals, se existir, ou o azul do WhiteSur)
+                model: ["", "#315bef", "#926ee4", "#f74f9e", "#ff5257", "#f7821b", "#ffc600", "#62ba46", "#8c8c8c"]
+                Item {
+                    id: sw
+                    required property string modelData
+                    readonly property bool selected: accentRow.chosen === modelData
+                    width: 26
+                    height: 26
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: sw.selected ? 26 : 22
+                        height: width
+                        radius: width / 2
+                        color: "transparent"
+                        border.width: 2
+                        border.color: sw.selected ? Theme.text : "transparent"
+                        Behavior on width { NumberAnimation { duration: 140 } }
+                    }
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 18
+                        height: 18
+                        radius: 9
+                        scale: swMa.containsMouse ? 1.12 : 1
+                        Behavior on scale { NumberAnimation { duration: 120 } }
+                        gradient: sw.modelData === "" ? autoGrad : null
+                        color: sw.modelData === "" ? "transparent" : sw.modelData
+                        Gradient {
+                            id: autoGrad
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0; color: "#315bef" }
+                            GradientStop { position: 0.5; color: "#926ee4" }
+                            GradientStop { position: 1; color: "#f74f9e" }
+                        }
+                    }
+                    MouseArea {
+                        id: swMa
+                        anchors.fill: parent
+                        anchors.margins: -3
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: if (Store.backend) Store.backend.accentChoice = sw.modelData
+                    }
+                }
+            }
+        }
     }
 
     Item { width: 1; height: 2 }
@@ -239,7 +305,7 @@ Column {
             width: parent.width - 28
             spacing: 2
             Repeater {
-                model: [["N", "Nova demanda"], ["F", "Abrir / fechar painel"], ["H", "Esconder em bolinha"], ["D", "Concluir demanda em foco"], ["M", "Mover pro próximo monitor"], ["Espaço", "Tocar / pausar música"], [".", "Próxima música"], [",", "Música anterior"]]
+                model: [["N", "Nova demanda", "add"], ["F", "Abrir / fechar painel", "toggle"], ["H", "Esconder em bolinha", "hide"], ["D", "Concluir demanda em foco", "done"], ["M", "Mover pro próximo monitor", "screen"], ["Espaço", "Tocar / pausar música", "play"], [".", "Próxima música", "next"], [",", "Música anterior", "prev"]]
                 Item {
                     required property var modelData
                     width: shortcutsCol.width
@@ -255,7 +321,7 @@ Column {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 4
                         Repeater {
-                            model: ["Meta", "Alt", modelData[0]]
+                            model: Store.keysFor(modelData[2], modelData[0])
                             Rectangle {
                                 required property string modelData
                                 height: 20
@@ -276,7 +342,8 @@ Column {
         x: 4
         width: parent.width - 8
         wrapMode: Text.WordWrap
-        text: "Dá para trocar em Configurações do Sistema › Teclado › Atalhos › Foquinho."
+        text: Store.backend && Store.backend.shortcutsHint ? Store.backend.shortcutsHint
+              : "Dá para trocar em Configurações do Sistema › Teclado › Atalhos › Foquinho."
         color: Theme.text3
         font.pixelSize: 11
     }

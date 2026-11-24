@@ -34,6 +34,12 @@ QtObject {
     property string quip: ""
     property Timer quipTimer: Timer { interval: 2600; onTriggered: store.quip = "" }
     function say(text) { quip = text; quipTimer.restart() }
+
+    // Teclas do atalho global de um comando (o X11 deixa trocar no foco-maxrc)
+    function keysFor(cmd, letter) {
+        const k = backend && backend.shortcutKeys ? backend.shortcutKeys[cmd] : undefined
+        return k && k.length ? k : ["Meta", "Alt", letter]
+    }
     function sayOneOf(list) { say(list[Math.floor(Math.random() * list.length)]) }
 
     readonly property int level: 1 + Math.floor(totalDone / 5)

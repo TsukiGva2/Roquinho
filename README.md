@@ -5,13 +5,14 @@
 <p align="center">
   <img src="https://img.shields.io/badge/KDE_Plasma-6-1d99f3?logo=kde&logoColor=white" alt="KDE Plasma 6">
   <img src="https://img.shields.io/badge/Wayland-nativo-ffbc00?logo=wayland&logoColor=black" alt="Wayland">
+  <img src="https://img.shields.io/badge/Openbox-X11-5c5c5c?logo=archlinux&logoColor=white" alt="Openbox / X11">
   <img src="https://img.shields.io/badge/Qt-6_·_QML-41cd52?logo=qt&logoColor=white" alt="Qt 6">
   <img src="https://img.shields.io/badge/C%2B%2B-17-00599c?logo=cplusplus&logoColor=white" alt="C++17">
   <img src="https://img.shields.io/badge/tema-WhiteSur-926ee4" alt="WhiteSur">
 </p>
 
 <p align="center">
-  <b>Foquinho</b> é um notch animado para o KDE Plasma que deixa <b>o que você está fazendo agora</b> sempre à vista.<br>
+  <b>Foquinho</b> é um notch animado para o KDE Plasma (e agora também para o <a href="#-versão-para-openbox-arch-linux">Openbox</a>) que deixa <b>o que você está fazendo agora</b> sempre à vista.<br>
   Você registra uma demanda em dois segundos, coloca em foco, vê o cronômetro correndo e, quando termina,<br>
   a próxima da fila já entra sozinha. Tudo isso com um mascotinho torcendo por você.
 </p>
@@ -191,6 +192,7 @@ Quando o app abre (e uma vez por dia), o Foquinho manda um balãozinho com os at
 | <kbd>Meta</kbd>+<kbd>Alt</kbd>+<kbd>,</kbd> | Música: anterior |
 
 Eles ficam registrados no KDE: dá pra trocar em *Configurações do Sistema › Teclado › Atalhos › Foquinho*.
+No Openbox, <kbd>Meta</kbd> é a tecla <kbd>Super</kbd> e eles são trocados no `~/.config/foco-maxrc` ([veja como](#-versão-para-openbox-arch-linux)).
 
 ---
 
@@ -246,6 +248,66 @@ Para desinstalar: `make uninstall`.
 
 ---
 
+## 🐧 Versão para Openbox (Arch Linux)
+
+Não usa KDE? O Foquinho tem uma versão para **Openbox** (e que roda também em Fluxbox, i3, XFCE e outros
+gerenciadores X11). É o mesmo notch, o mesmo mascote, a mesma fila e o mesmo player de música;
+só a parte que conversa com o sistema muda, e ela **não precisa de nada do KDE**.
+
+### Instalar com `make`
+
+```bash
+sudo pacman -S --needed base-devel git qt6-base qt6-declarative libxcb libpulse
+git clone https://github.com/Vitorprogrammerjunior/Foquinho.git
+cd Foquinho
+make install-openbox
+```
+
+Pronto: `~/.local/bin/foco-max`, o ícone e o atalho no menu. Abra com `~/.local/bin/foco-max` (ou pelo menu do seu
+lançador). Desinstalar: `make uninstall`.
+
+### Ou como pacote do Arch
+
+```bash
+cd Foquinho/packaging/arch
+makepkg -si
+```
+
+Instala o pacote `foquinho-openbox-git` em `/usr`, com as dependências resolvidas pelo `pacman`.
+
+### O que muda em relação ao KDE
+
+| | KDE Plasma (Wayland) | Openbox (X11) |
+|---|---|---|
+| Janela | layer-shell, camada overlay | dock (`_NET_WM_WINDOW_TYPE_DOCK`): sem borda, fora do Alt+Tab, em todas as áreas de trabalho |
+| Atalhos | registrados no KDE | capturados direto no X (<kbd>Super</kbd>+<kbd>Alt</kbd>+…), trocáveis no `~/.config/foco-maxrc` |
+| Cor de destaque | segue a do KDE | você escolhe nos ajustes (9 cores) |
+| Transparência | sempre | com **picom**: sombras e cantos suaves. Sem compositor: a janela é recortada no formato do notch e funciona igual |
+| Tela cheia | fica por cima | fica por baixo da janela em tela cheia que estiver em foco (regra do Openbox) |
+| Iniciar com o sistema | `~/.config/autostart` | `~/.config/autostart` **e** uma linha no `~/.config/openbox/autostart` |
+
+### Dicas para o Openbox
+
+- 🌫️ **Quer as sombras?** Instale o `picom` e coloque `picom &` no `~/.config/openbox/autostart`.
+  O Foquinho percebe o compositor ligando ou desligando com ele aberto.
+- ⌨️ **Trocar os atalhos:** edite a seção `[shortcuts]` do `~/.config/foco-maxrc` e reabra o app.
+  Aceita `Meta+Alt+N`, `Super+Ctrl+F1` ou o jeito do Openbox (`W-A-n`). Valor vazio desliga aquele atalho.
+
+  ```ini
+  [shortcuts]
+  quick-add=Meta+Alt+N
+  toggle-panel=Meta+Alt+F
+  music-toggle=Meta+Alt+Space
+  music-prev="Meta+Alt+,"
+  ```
+- 🧩 **Prefere tudo no `rc.xml`?** Tem um exemplo pronto com os `<keybind>` (e as teclas de mídia) em
+  [`data/openbox/rc.xml.exemplo`](data/openbox/rc.xml.exemplo). Desligue os atalhos internos e cole os seus.
+- 📋 **No menu da área de trabalho:** [`data/openbox/menu.xml.exemplo`](data/openbox/menu.xml.exemplo) adiciona um
+  submenu “Foquinho” com nova demanda, concluir, pausar e esconder.
+- 🖥️ **Vários monitores:** funciona igual (xrandr/arandr); trocar resolução recentraliza o notch.
+
+---
+
 ## 🖥️ Linha de comando
 
 O Foquinho é instância única: chamar o binário de novo só manda comandos pra que já está rodando.
@@ -253,6 +315,7 @@ Isso facilita integrar com scripts, KRunner ou atalhos personalizados.
 
 ```bash
 foco-max                         # inicia (ou abre o painel se já estiver rodando)
+foco-max start                   # inicia sem abrir nada se já estiver rodando
 foco-max add "Revisar PR"        # adiciona à fila
 foco-max focus "Ligar pro João"  # adiciona direto em foco
 foco-max done                    # conclui a demanda em foco
@@ -269,10 +332,10 @@ foco-max screen HDMI-A-1         # vai pra uma tela específica (ou: screen prim
 
 ```
 ┌──────────────────────── C++ (src/) ────────────────────────┐
-│  LayerShellQt  → janela overlay ancorada no topo, sobre a   │
-│                  barra, visível até em tela cheia           │
-│  setMask       → só o notch recebe clique; o resto passa    │
-│  KGlobalAccel  → atalhos globais registrados no KDE         │
+│  platform_kde  → LayerShellQt (overlay no topo, até sobre   │
+│                  tela cheia) + atalhos no KGlobalAccel      │
+│  platform_x11  → Openbox/X11: dock EWMH, XShape (cliques e  │
+│                  recorte sem compositor), XGrabKey          │
 │  kdeglobals    → cor de destaque ao vivo                    │
 │  QLocalServer  → instância única + comandos via CLI         │
 │  QScreen       → escolhe o monitor e remapeia no hotplug    │
