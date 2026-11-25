@@ -1,0 +1,60 @@
+{
+ "version": 1,
+ "lastSeen": 1795550600000,
+ "settings": {
+  "petKind": "ghost",
+  "petName": "Bolinha \"ç\" ã",
+  "autoAdvance": false,
+  "hidden": true,
+  "tipsEnabled": true,
+  "lastTipDay": "2026-11-24",
+  "musicEnabled": true
+ },
+ "totalDone": 7,
+ "focus": [
+  {
+   "tid": "k1abc",
+   "title": "Escrever relatório ação",
+   "accMs": 120000,
+   "startedAt": 1795550600000,
+   "running": true,
+   "createdAt": 1795550000000,
+   "doneAt": 0,
+   "spentMs": 0
+  }
+ ],
+ "queue": [
+  {
+   "tid": "q1",
+   "title": "Fila um",
+   "accMs": 0,
+   "startedAt": 0,
+   "running": false,
+   "createdAt": 1795550001000,
+   "doneAt": 0,
+   "spentMs": 0
+  },
+  {
+   "tid": "q2",
+   "title": "tab\there\\",
+   "accMs": 5,
+   "startedAt": 0,
+   "running": false,
+   "createdAt": 1795550002000,
+   "doneAt": 0,
+   "spentMs": 0
+  }
+ ],
+ "done": [
+  {
+   "tid": "d1",
+   "title": "Feita",
+   "accMs": 60000,
+   "startedAt": 0,
+   "running": false,
+   "createdAt": 1795549000000,
+   "doneAt": 1795549100000,
+   "spentMs": 60000
+  }
+ ]
+}

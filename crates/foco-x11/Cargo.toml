@@ -1,0 +1,15 @@
+[package]
+name = "foco-x11"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+foco-base.workspace = true
+x11rb.workspace = true
+xkbcommon.workspace = true
+# "mm" is needed for mmap of the memfd-backed MIT-SHM segment.
+rustix = { workspace = true, features = ["mm"] }
+
+[dev-dependencies]
+tiny-skia.workspace = true

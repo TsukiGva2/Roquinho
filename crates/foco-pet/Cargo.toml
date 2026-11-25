@@ -1,0 +1,12 @@
+[package]
+name = "foco-pet"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+foco-base.workspace = true
+tiny-skia.workspace = true
+
+[dev-dependencies]
+foco-base = { workspace = true, features = ["png"] }

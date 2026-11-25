@@ -1,0 +1,16 @@
+[package]
+name = "foco-ui"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+# Views reach the store, text and mascot through `StoreRead`, `TextMeasure` and `pet::PetLike`;
+# `real.rs` holds the impls over foco-core / foco-pet. foco-gfx is wired by the foco-max binary.
+[dependencies]
+foco-base.workspace = true
+foco-core.workspace = true
+foco-pet.workspace = true
+tiny-skia.workspace = true
+
+[dev-dependencies]
+foco-base = { workspace = true, features = ["png"] }

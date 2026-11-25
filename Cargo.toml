@@ -1,0 +1,49 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/foco-base",
+    "crates/foco-gfx",
+    "crates/foco-x11",
+    "crates/foco-core",
+    "crates/foco-pet",
+    "crates/foco-ui",
+    "crates/foco-max",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+
+[workspace.dependencies]
+foco-base = { path = "crates/foco-base" }
+foco-gfx = { path = "crates/foco-gfx" }
+foco-x11 = { path = "crates/foco-x11" }
+foco-core = { path = "crates/foco-core" }
+foco-pet = { path = "crates/foco-pet" }
+foco-ui = { path = "crates/foco-ui" }
+
+tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
+fontdue = "0.9"
+x11rb = { version = "0.13", features = ["shm", "shape", "randr", "xkb"] }
+xkbcommon = { version = "0.9", default-features = false }
+rustix = { version = "1", features = ["event", "time", "fs", "process", "net", "std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+debug = false
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.profiling]
+inherits = "release"
+strip = false
+debug = 1
