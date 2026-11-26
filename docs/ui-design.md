@@ -199,8 +199,8 @@ ticks).
   → notch content (ExpandedView / AlertView / CollapsedView, inside the clipper rect) → notch
   background (`MouseArea` over the whole notch incl. ears: click ⇒ `Cmd(Open)` when `!expanded`).
   A view returning `Grab` on Down receives all Moves/Up until Up. A **click** fires on Up when the Up
-  lands inside the pressed element (MouseArea semantics). The press scale (IconButton 0.86,
-  140 ms OutQuad) follows `pressed && inside`.
+  lands inside the pressed element (MouseArea semantics). The IconButton scale (0.86 pressed in
+  90 ms, 1.1 hovered, 1 otherwise in 260 ms, `OutBack` overshoot 2) follows `pressed && inside` / hover.
 - **Hover** (HoverHandler/containsMouse): on PointerMove with no grab, every visible view updates its
   flags by containment, so nested elements both report hover (card + its button). `PointerLeave`
   clears everything. Notch hover = pointer inside the *current* notch rect
