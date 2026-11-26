@@ -70,6 +70,9 @@ impl PetLike for RealPet {
     fn react(&mut self, name: &str, ms: Ms, now: Ms) {
         self.pet.react_for(name, ms, now);
     }
+    fn reacting(&self) -> bool {
+        self.pet.reacting()
+    }
     fn set_mood(&mut self, mood: Mood, now: Ms) {
         self.pet.set_mood(mood, now);
     }

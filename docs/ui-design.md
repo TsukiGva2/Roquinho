@@ -346,9 +346,9 @@ the tip is shown. Converted ×S (round out) for `x11.set_input_region`.
 
 Notch geometry (Main.qml:258-300): `ear = min(12, h/2.6)`, `notch.w = max(0,cur_w)+2*ear`,
 `notch.x = round((760-notch.w)/2)`, visible iff `h>0.5 && cur_w>1`. The clipper is the **rectangle**
-`(notch.x+ear, 0, cur_w, cur_h)`. Children are horizontally centred in it, at y 0: collapsed `(implicit_w ×
-(hovered?42:38))`, alert `400×62`, expanded `548×implicit_h`. Tip position:
-`x = round((760 - collapsed.implicit_width())/2 + collapsed.pet_center() - 34)`, `y = round(max(cur_h,30)+8)`.
+`(notch.x+ear, 0, cur_w, cur_h)`. Children are horizontally centred in it, at y 0: collapsed `(min(implicit_w, cur_w) ×
+(38+4·hoverT))`, alert `400×62`, expanded `548×implicit_h`. Tip position:
+`x = round((760 - min(collapsed.implicit_width(), cur_w))/2 + collapsed.pet_center() - 34)`, `y = round(max(cur_h,30)+8)`.
 
 ---
 
@@ -454,9 +454,10 @@ and `widgets/` are frozen and may only grow, via a note to the integrator. Each 
 
 1. **Column skips invisible children** for spacing: MainSections.qml:196,311-327 (the 2 px spacer exists only when
    the queue is non-empty). ExpandedView height: `min(700, 12+70+12+body+20)`, ExpandedView.qml:19.
-2. **Collapsed width** is `max(250, 14+26+9+min(titleImplicitW,230)+(badge? badgeW+8:0)+22+controlsW+timerW+16)`,
-   but the title is drawn at x 50 (`+10`, not `+9`). `controlsW` jumps 0↔62 with no animation (the spring
-   smooths it). Height 38→42 on hover re-centres the content 2 px lower: CollapsedView.qml:10,26-29,83; Main.qml:306.
+2. **Collapsed width** is `max(250, titleX+min(titleImplicitW,230)+(badge? badgeW+8:0)+22+controlsW+timerW+16)`
+   with `titleX = 50 + 2·hoverT`. `hoverT` is a 380 ms OutCubic 0→1 on hover and drives `controlsW` (62·hoverT), the
+   no-focus width (212+14·hoverT) and the height (38+4·hoverT). The content frame is `min(implicit, cur_w)` (it
+   follows the notch spring) and the title elides into the room left. CollapsedView.qml:10-13,26-29; Main.qml:363-368.
 3. **Notch clip is a rectangle**, not the notch shape, and the ears shrink when `h < 31.2` (`ear = min(12,h/2.6)`):
    Main.qml:260,295-300.
 4. **Opacity Behaviors are asymmetric**: collapsed in = 120 ms pause + 240 OutCubic, out = 90 ms;

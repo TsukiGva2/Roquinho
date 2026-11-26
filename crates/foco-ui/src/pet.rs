@@ -17,6 +17,10 @@ pub trait PetLike {
     fn paint(&self, s: &mut dyn Surface, rect: Rect, now: Ms);
     /// `Pet.react(name, ms)`; ignored when the pet is not active.
     fn react(&mut self, name: &str, ms: Ms, now: Ms);
+    /// A reaction is showing (the view then leaves the pet's expression alone). Default: never.
+    fn reacting(&self) -> bool {
+        false
+    }
     fn set_mood(&mut self, mood: Mood, now: Ms);
     fn set_kind(&mut self, kind: PetKind, now: Ms);
     /// `animated && visible`: inactive pets neither animate nor wake.
