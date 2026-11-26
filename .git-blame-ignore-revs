@@ -1,0 +1,3 @@
+# Commits que só reformatam o código. Use com: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# Formata o código com rustfmt
+df97e8281eed5ead50a3b7d3a8593c47e2dd7955

@@ -1,95 +1,44 @@
-# Foquinho — build sem CMake: g++ + moc + rcc do Qt6
-#
-#   make install                    KDE Plasma 6 / Wayland (padrão)
-#   make PLATFORM=openbox install   Openbox e outros gerenciadores X11 (sem KDE)
-PLATFORM   ?= kde
-ifeq ($(PLATFORM),x11)
-override PLATFORM := openbox
-endif
+PREFIX ?= $(HOME)/.local
+BIN    := $(PREFIX)/bin/foco-max
+TARGET := target/release/foco-max
 
-QT_MODULES := Qt6Quick Qt6Qml Qt6Gui Qt6Core Qt6Network Qt6DBus
-CXX        ?= g++
-PREFIX     ?= $(HOME)/.local
-DESTDIR    ?=
-MOC        := /usr/lib/qt6/moc
-RCC        := /usr/lib/qt6/rcc
+.PHONY: all build install restart deploy stop test fmt lint check clean uninstall
 
-ifeq ($(PLATFORM),kde)
-PLAT_SRC   := src/platform_kde.cpp
-PLAT_FLAGS := -I/usr/include/KF6/KGlobalAccel
-PLAT_LIBS  := -lLayerShellQtInterface -lKF6GlobalAccel
-else ifeq ($(PLATFORM),openbox)
-PLAT_SRC   := src/platform_x11.cpp
-PLAT_FLAGS := $(shell pkg-config --cflags xcb xcb-shape)
-PLAT_LIBS  := $(shell pkg-config --libs xcb xcb-shape)
-else
-$(error PLATFORM deve ser kde ou openbox)
-endif
+all: build
 
-B          := build/$(PLATFORM)
-CXXFLAGS   += -O2 -std=c++17 -fPIC -Wall -Wextra -Isrc \
-              $(shell pkg-config --cflags $(QT_MODULES)) $(PLAT_FLAGS)
-LDLIBS     += $(shell pkg-config --libs $(QT_MODULES)) $(PLAT_LIBS)
+build:
+	cargo build --release
 
-QML_FILES  := $(wildcard qml/*.qml) qml/qmldir
-HEADERS    := src/backend.h src/media.h src/platform.h
-OBJS       := $(B)/main.o $(B)/backend.o $(B)/media.o $(B)/platform.o \
-              $(B)/moc_backend.o $(B)/moc_media.o $(B)/moc_platform.o $(B)/qrc_resources.o
-TARGET     := $(B)/foco-max
+# Atomic replace: safe even while foco-max is running (the old process keeps the old code).
+install: build
+	install -Dm755 $(TARGET) $(BIN)
 
-all: $(TARGET)
+# Stop the running instance (if any) and start the installed binary detached.
+restart: stop
+	setsid -f $(BIN) start >/dev/null 2>&1
 
-$(B):
-	@mkdir -p $(B)
+# Build, install and restart in one go.
+deploy: install restart
 
-$(B)/moc_%.cpp: src/%.h | $(B)
-	$(MOC) $< -o $@
+stop:
+	-pkill -x foco-max
+	@while pgrep -x foco-max >/dev/null; do sleep 0.1; done
 
-$(B)/qrc_resources.cpp: resources.qrc $(QML_FILES) | $(B)
-	$(RCC) --name resources $< -o $@
+test:
+	cargo test --workspace
 
-$(B)/platform.o: $(PLAT_SRC) $(HEADERS) | $(B)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+fmt:
+	cargo fmt --all
 
-$(B)/%.o: src/%.cpp $(HEADERS) | $(B)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+lint:
+	cargo fmt --all --check
+	cargo clippy --workspace --all-targets -- -D warnings
 
-$(B)/moc_%.o: $(B)/moc_%.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(B)/qrc_resources.o: $(B)/qrc_resources.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(TARGET): $(OBJS)
-	$(CXX) -o $@ $^ $(LDLIBS)
-
-install: all
-	install -Dm755 $(TARGET) $(DESTDIR)$(PREFIX)/bin/foco-max
-	install -Dm644 data/foco-max.svg $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps/foco-max.svg
-	install -d $(DESTDIR)$(PREFIX)/share/applications
-	sed "s|@BIN@|$(PREFIX)/bin/foco-max|g" data/foco-max.desktop.in > $(DESTDIR)$(PREFIX)/share/applications/foco-max.desktop
-ifeq ($(PLATFORM),openbox)
-	install -Dm644 data/openbox/rc.xml.exemplo $(DESTDIR)$(PREFIX)/share/foco-max/openbox/rc.xml.exemplo
-	install -Dm644 data/openbox/menu.xml.exemplo $(DESTDIR)$(PREFIX)/share/foco-max/openbox/menu.xml.exemplo
-endif
-	@if [ -z "$(DESTDIR)" ]; then update-desktop-database $(PREFIX)/share/applications 2>/dev/null || true; fi
-
-uninstall:
-	rm -f $(PREFIX)/bin/foco-max $(PREFIX)/share/applications/foco-max.desktop \
-	      $(PREFIX)/share/icons/hicolor/scalable/apps/foco-max.svg $(HOME)/.config/autostart/foco-max.desktop
-	rm -rf $(PREFIX)/share/foco-max
-	@if [ -f $(HOME)/.config/openbox/autostart ]; then sed -i '/# foquinho/d' $(HOME)/.config/openbox/autostart; fi
-
-run: all
-	./$(TARGET)
-
-# atalhos para a versão Openbox
-openbox:
-	$(MAKE) PLATFORM=openbox
-install-openbox:
-	$(MAKE) PLATFORM=openbox install
+# Same as CI.
+check: lint test
 
 clean:
-	rm -rf build
+	cargo clean
 
-.PHONY: all install uninstall run clean openbox install-openbox
+uninstall: stop
+	rm -f $(BIN)

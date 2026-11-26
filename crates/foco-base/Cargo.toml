@@ -1,0 +1,20 @@
+[package]
+name = "foco-base"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tiny-skia.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[features]
+default = []
+# PixSurface::save_png (enables tiny-skia's PNG encoder).
+png = ["tiny-skia/png-format"]
+
+[dev-dependencies]

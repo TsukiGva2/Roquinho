@@ -1,0 +1,22 @@
+[package]
+name = "foco-max"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "foco-max"
+path = "src/main.rs"
+
+[dependencies]
+foco-base.workspace = true
+foco-gfx.workspace = true
+foco-x11.workspace = true
+foco-core.workspace = true
+foco-pet.workspace = true
+foco-ui.workspace = true
+rustix.workspace = true
+tiny-skia = { workspace = true, features = ["png-format"] }
