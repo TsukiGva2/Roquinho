@@ -59,12 +59,15 @@ fn lut() -> &'static [u8; 256] {
 pub struct GlyphCache {
     map: FastMap<u64, u32>,
     metas: Vec<GlyphMeta>,
-    data: Vec<u8>,
+    pub(crate) data: Vec<u8>,
     /// Number of rasterisations performed (diagnostics / tests).
     pub misses: u64,
 }
 
-const MAX_DATA: usize = 24 << 20;
+/// Bytes of glyph coverage kept before the atlas is emptied. Measured: ~0.1 MB of glyphs
+/// collapsed and ~0.35 MB with the panel open; the rest is one-shot sizes from the open/close
+/// animations (1.5 MB over 20 open/close cycles), so 2 MB never empties it while idle.
+pub(crate) const MAX_DATA: usize = 2 << 20;
 
 impl GlyphCache {
     pub fn new() -> GlyphCache {
@@ -74,7 +77,8 @@ impl GlyphCache {
     pub fn clear(&mut self) {
         self.map.clear();
         self.metas.clear();
-        self.data.clear();
+        // a fresh Vec, not `clear()`: the old one may hold twice its length from doubling
+        self.data = Vec::new();
     }
 
     /// Cached glyph (rasterised on first use). `size64` = pixel size * 64, `px`/`py` = phase in quarters.

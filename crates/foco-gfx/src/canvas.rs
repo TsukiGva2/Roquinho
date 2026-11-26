@@ -24,9 +24,11 @@ pub(crate) struct SpriteKey {
     fy: u8,
 }
 
-/// Bytes of cached pictures kept before the cache is emptied (a pet's poses: tens to a couple
-/// hundred of 6-34 KB each).
-const SPRITE_BYTES: usize = 8 << 20;
+/// Bytes of cached pictures kept before the cache is emptied. Ambient pose animation keeps
+/// minting new poses, so the set never settles; measured (60 fps pet, one-shot poses included)
+/// the reuse distance of a hit is p99 1.6 MB collapsed and p90 3.8 MB with the panel open, and
+/// 4 MB empties the cache about every 24 s open (2 MB: every 9 s, hit rate 40% vs 52%).
+pub(crate) const SPRITE_BYTES: usize = 4 << 20;
 
 #[derive(Clone)]
 struct State {
@@ -285,9 +287,9 @@ impl Surface for Canvas<'_> {
                 Some(None) if pw > 0 && ph > 0 => {
                     let sk = SpriteKey { key, scale: sx.to_bits(), w: pw, h: ph, fx, fy };
                     if !self.eng.sprites.contains_key(&sk) {
-                        let used: usize = self.eng.sprites.values().map(|p| p.data().len()).sum();
-                        if used + (pw * ph * 4) as usize > SPRITE_BYTES {
+                        if self.eng.sprite_bytes + (pw * ph * 4) as usize > SPRITE_BYTES {
                             self.eng.sprites.clear();
+                            self.eng.sprite_bytes = 0;
                         }
                         if let Some(mut pm) = Pixmap::new(pw as u32, ph as u32) {
                             {
@@ -302,6 +304,7 @@ impl Surface for Canvas<'_> {
                                 );
                                 draw(&mut cv);
                             }
+                            self.eng.sprite_bytes += pm.data().len();
                             self.eng.sprites.insert(sk, pm);
                         }
                     }

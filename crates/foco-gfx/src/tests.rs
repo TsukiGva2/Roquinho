@@ -588,3 +588,46 @@ fn renderer_measure_matches_canvas() {
         });
     }
 }
+
+#[test]
+fn sprite_cache_stays_under_its_cap_and_counts_its_bytes() {
+    let mut r = Renderer::new();
+    let (w, h) = (200u32, 100u32);
+    let mut buf = vec![0u8; (w * h * 4) as usize];
+    let rect = IRect::new(0, 0, w as i32, h as i32);
+    // 64x64 sprites (about 17 KB with the margin), all different keys: enough to overflow the cap twice
+    let n = 2 * crate::canvas::SPRITE_BYTES / (66 * 66 * 4) + 1;
+    for key in 0..n as u64 {
+        r.render(&mut buf, w, h, &[rect], &mut |c| {
+            c.cached(key, Rect::new(10.0, 10.0, 64.0, 64.0), &mut |s| {
+                s.fill_rrect(Rect::new(10.0, 10.0, 64.0, 64.0), 8.0, &Fill::Solid(Color::WHITE));
+            });
+        });
+        let real: usize = r.eng.sprites.values().map(|p| p.data().len()).sum();
+        assert_eq!(r.eng.sprite_bytes, real, "counter drifted at key {key}");
+        assert!(real <= crate::canvas::SPRITE_BYTES, "{real} bytes cached at key {key}");
+    }
+    assert!(r.eng.sprites.len() < n, "the cache never emptied");
+}
+
+#[test]
+fn glyph_cache_stays_under_its_cap_and_a_clear_frees_the_memory() {
+    let mut r = Renderer::new();
+    let (w, h) = (400u32, 120u32);
+    let mut buf = vec![0u8; (w * h * 4) as usize];
+    let rect = IRect::new(0, 0, w as i32, h as i32);
+    // every size is a new glyph set; the 24 MB-era cap would hold all of them
+    let mut peak = 0;
+    for i in 0..600 {
+        let st = TextStyle::new(30.0 + i as f32 * 0.05, Weight::Regular, Color::WHITE);
+        r.render(&mut buf, w, h, &[rect], &mut |c| {
+            c.text("Foquinho 0123456789", 4.0, 4.0, &st);
+        });
+        peak = peak.max(r.eng.glyphs.data.len());
+    }
+    // a glyph of this size is well under 16 KB
+    assert!(peak <= crate::glyphs::MAX_DATA + (16 << 10), "atlas peaked at {peak} bytes");
+    assert!(peak > crate::glyphs::MAX_DATA / 2, "the test never filled the atlas");
+    r.eng.glyphs.clear();
+    assert_eq!(r.eng.glyphs.data.capacity(), 0, "clear kept the doubled capacity");
+}

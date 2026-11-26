@@ -40,6 +40,7 @@ impl Renderer {
                 glyphs: GlyphCache::new(),
                 text: TextEngine::default(),
                 sprites: std::collections::HashMap::new(),
+                sprite_bytes: 0,
                 shadows: ShadowCache::new(),
             },
             scratch: Vec::new(),
