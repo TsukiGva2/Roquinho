@@ -190,6 +190,8 @@ pub struct App {
     geom: NotchGeom,
     shadow_op: f32,
     laid_out: bool,
+    /// The renderer scratch may hold the panel's large partial-width rects; see `render`.
+    scratch_grown: bool,
 
     collapsed: CollapsedView,
     alert_view: AlertView,
@@ -251,6 +253,7 @@ impl App {
             booted: false,
             quitting: false,
             expanded: false,
+            scratch_grown: false,
             settings_open: false,
             quick_mode: false,
             expand_stamp: 0.0,
@@ -1264,6 +1267,14 @@ impl App {
                 dot.paint(c, &pc);
             });
         }
+        // The panel's tall partial-width rects grow the renderer scratch to ~2 MB. Hand it back
+        // once, after the closed notch has settled (it shrinks across those rects until then).
+        if self.expanded || self.expanded_view.visible(now) {
+            self.scratch_grown = true;
+        } else if self.scratch_grown && self.spr_w.settled() && self.spr_h.settled() {
+            self.gfx.release_scratch();
+            self.scratch_grown = false;
+        }
     }
 
     // ---------------------------------------------------------------- snapshot helpers
@@ -1382,5 +1393,34 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn scratch_is_released_once_after_the_panel_has_closed() {
+        let mut app = mk(STATE);
+        let mut buf = vec![0u8; WIN_DEV as usize * WIN_DEV as usize * 4];
+        let mut t = 0.0;
+        let mut frame = |app: &mut App, t: &mut Ms| {
+            app.tick(*t, EPOCH0 + *t);
+            let _ = app.take_requests();
+            let d = app.take_damage();
+            app.render(&mut buf, &d, *t, EPOCH0 + *t);
+            *t += 16.0;
+        };
+        while t < 1000.0 {
+            frame(&mut app, &mut t);
+        }
+        app.on_cmd(AppCmd::Open, t, EPOCH0 + t);
+        for _ in 0..60 {
+            frame(&mut app, &mut t);
+        }
+        assert!(app.scratch_grown, "the open panel did not mark the scratch");
+        app.on_cmd(AppCmd::Collapse, t, EPOCH0 + t);
+        frame(&mut app, &mut t);
+        assert!(app.scratch_grown, "released while the notch was still shrinking");
+        for _ in 0..120 {
+            frame(&mut app, &mut t);
+        }
+        assert!(!app.scratch_grown, "the scratch was never released after the panel closed");
     }
 }

@@ -13,7 +13,7 @@ use crate::Engine;
 /// Owns fonts, caches and the scratch pixmap.
 pub struct Renderer {
     pub(crate) eng: Engine,
-    scratch: Vec<u8>,
+    pub(crate) scratch: Vec<u8>,
 }
 
 impl Default for Renderer {
@@ -45,6 +45,12 @@ impl Renderer {
             },
             scratch: Vec::new(),
         }
+    }
+
+    /// Frees the scratch buffer behind partial-width damage rects; the next such frame reallocates
+    /// it. The panel's tall rects grow it to ~2 MB, which nothing else needs.
+    pub fn release_scratch(&mut self) {
+        self.scratch = Vec::new();
     }
 
     /// Switches the UI font family (layout caches are keyed by style, glyph caches by face).

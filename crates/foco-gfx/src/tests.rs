@@ -631,3 +631,22 @@ fn glyph_cache_stays_under_its_cap_and_a_clear_frees_the_memory() {
     r.eng.glyphs.clear();
     assert_eq!(r.eng.glyphs.data.capacity(), 0, "clear kept the doubled capacity");
 }
+
+#[test]
+fn released_scratch_is_empty_and_the_next_partial_frame_is_identical() {
+    let paint = |c: &mut Canvas| {
+        c.fill_rrect(Rect::new(0.0, 0.0, 300.0, 200.0), 0.0, &Fill::Solid(theme::CARD));
+        c.text("scratch", 20.0, 20.0, &TextStyle::new(13.0, Weight::Medium, theme::TEXT));
+    };
+    let mut r = Renderer::new();
+    let (w, h) = (300u32, 200u32);
+    let rect = [IRect::new(40, 10, 120, 80)]; // not full-width: goes through the scratch
+    let mut first = vec![0u8; (w * h * 4) as usize];
+    r.render(&mut first, w, h, &rect, &mut |c| paint(c));
+    assert!(!r.scratch.is_empty());
+    r.release_scratch();
+    assert_eq!(r.scratch.capacity(), 0);
+    let mut second = vec![0u8; (w * h * 4) as usize];
+    r.render(&mut second, w, h, &rect, &mut |c| paint(c));
+    assert_eq!(first, second);
+}
