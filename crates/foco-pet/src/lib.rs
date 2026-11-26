@@ -39,7 +39,7 @@ const SHADE_GHOST: Color = Color::rgb8(0xC9, 0xC9, 0xD6);
 
 /// Fraction of `size` the drawing may reach outside `rect` (z's, hearts, notes, tail, jump).
 const OVERDRAW: f32 = 0.15;
-/// Repaint threshold: a parameter must move by 1/QUANT_DIV device pixel to count as a change.
+/// Repaint threshold: a parameter must move by `1/QUANT_DIV` device pixel to count as a change.
 /// The ambient motion is a pixel or two in total (a few at the 66 px header pet), so half-pixel
 /// steps look the same as quarter-pixel ones and halve the repaints.
 const QUANT_DIV: f32 = 2.0;
@@ -159,7 +159,7 @@ struct Lp {
 }
 
 impl Lp {
-    /// 0 -> 1 -> 0 over `2 d` (InOutSine up, InOutSine down).
+    /// 0 -> 1 -> 0 over `2 d` (`InOutSine` up, `InOutSine` down).
     fn s(&self, t: Ms) -> f32 {
         let p = (t - self.t0).rem_euclid(2.0 * self.d);
         (0.5 * (1.0 - (std::f64::consts::PI * p / self.d).cos())) as f32
@@ -595,7 +595,7 @@ impl Pet {
             }
             let end = r.step_start + dur;
             if let Step::Par(mvs) = step {
-                for m in mvs.iter() {
+                for m in *mvs {
                     self.set_ch(m.ch, m.to, end);
                 }
             }
@@ -626,7 +626,7 @@ impl Pet {
 
     /// `Pet.play(name)`: starts the animations of a reaction.
     fn play(&mut self, e: Expr, now: Ms) {
-        use defs::*;
+        use defs::{Ch, FIST, HEARTS, HOP, JUMP, NOTES, POP, SIGH, SPARK, SQUISH, STRETCH, SWAY, WAVE};
         match e {
             Expr::Happy | Expr::Celebrate => {
                 self.start_run(JUMP, now);
@@ -665,7 +665,7 @@ impl Pet {
     }
 
     fn fidget(&mut self, now: Ms) {
-        use Fidget::*;
+        use Fidget::{Blink2, Curious, Ear, Hop, Hum, Look, Nod, Nothing, Sigh, Tail, Turn, Wink, Yawn};
         let pool: &[Fidget] = match self.mood {
             Mood::Sleep => &[Yawn, Ear, Turn, Nothing],
             Mood::Idle => &[Look, Hum, Curious, Hop, Yawn, Tail, Blink2],
@@ -686,12 +686,12 @@ impl Pet {
             // ears and tail only exist on the cat
             Ear => {
                 if cat {
-                    self.start_run(defs::EAR, now)
+                    self.start_run(defs::EAR, now);
                 }
             }
             Tail => {
                 if cat {
-                    self.start_run(defs::TAIL_FLICK, now)
+                    self.start_run(defs::TAIL_FLICK, now);
                 }
             }
             Hop => self.start_run(defs::HOP, now),
@@ -761,12 +761,10 @@ impl Pet {
             self.sweat_t0 = None;
         }
         // blink timer: running while eyes are not closed
-        if expr.eyes() != Eyes::Closed {
-            if self.blink_at.is_none() {
-                self.blink_at = Some(now + self.blink_interval);
-            }
-        } else {
+        if expr.eyes() == Eyes::Closed {
             self.blink_at = None;
+        } else if self.blink_at.is_none() {
+            self.blink_at = Some(now + self.blink_interval);
         }
         // fidget timer
         if self.reaction.is_none() && !self.talking && !self.hovered {

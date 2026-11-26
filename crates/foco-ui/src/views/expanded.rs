@@ -244,7 +244,7 @@ impl ExpandedView {
         self.op.value(now) > 0.01
     }
 
-    /// Opacity: 90 ms pause + 280 ms OutCubic in, 100 ms out; translate -14 -> 0 over 420 ms.
+    /// Opacity: 90 ms pause + 280 ms `OutCubic` in, 100 ms out; translate -14 -> 0 over 420 ms.
     pub fn set_shown(&mut self, v: bool, now: Ms) {
         if v == self.shown {
             return;
@@ -359,10 +359,10 @@ impl ExpandedView {
         }
         // XP bar: first value is not animated (a Behavior does not run on the initial binding)
         let xp_w = (XP_W * st.xp()).max(3.0);
-        if !self.inited {
-            self.xp.set(xp_w);
-        } else {
+        if self.inited {
             self.xp.animate_to(xp_w, 700.0, Easing::OutCubic, now);
+        } else {
+            self.xp.set(xp_w);
         }
         // pet line
         let mood = model::mood(cx.store, cx.epoch);
@@ -1163,7 +1163,7 @@ mod tests {
         // the tick damages the clock text + ring only, never the whole panel
         h.damage.clear();
         step(&mut h, &mut v, t);
-        let area: i64 = h.damage.rects().iter().map(|r| r.area()).sum();
+        let area: i64 = h.damage.rects().iter().map(foco_base::IRect::area).sum();
         assert!(area > 0 && area < (548.0f32 * S * 200.0 * S) as i64, "{area}");
     }
 
@@ -1265,7 +1265,7 @@ mod tests {
         // damages only the 110x3 bar while it grows
         h.damage.clear();
         step(&mut h, &mut v, t0 + 200.0);
-        let area: i64 = h.damage.rects().iter().map(|r| r.area()).sum();
+        let area: i64 = h.damage.rects().iter().map(foco_base::IRect::area).sum();
         assert!(area > 0 && area < 130 * 20, "{area}");
     }
 
@@ -1280,7 +1280,7 @@ mod tests {
         assert!(v.main_visible(t0 + 100.0));
         assert_eq!(v.main_op.value(t0 + 101.0), 0.5);
         step(&mut h, &mut v, t0 + 120.0);
-        assert!(v.next_wake(t0 + 120.0) == Wake::Frame);
+        assert_eq!(v.next_wake(t0 + 120.0), Wake::Frame);
         step(&mut h, &mut v, t0 + 300.0);
         assert!(!v.main_visible(t0 + 300.0));
         assert_eq!(h.focus, FocusId::None, "an invisible input loses the keyboard");

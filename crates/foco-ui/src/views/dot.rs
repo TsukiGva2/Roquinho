@@ -1,7 +1,7 @@
 //! `Dot.qml` (wave 3a): the hidden-mode ball (music variant removed). Click => `Act(SetHidden(false))`.
 //!
 //! 34x34 hit area, 14 px ball. Hover scale 1.3; appears 170 ms after being shown (scale 0 -> 1
-//! OutBack 2.4 over 420 ms); while a task runs an accent ring pulses (1500 ms OutCubic to 2.3x,
+//! `OutBack` 2.4 over 420 ms); while a task runs an accent ring pulses (1500 ms `OutCubic` to 2.3x,
 //! fading 0.8 -> 0, then a 600 ms pause).
 //!
 //! Wakes: `Frame` while the scale / colour animates, `Ambient` (30 Hz) during the 1500 ms of the

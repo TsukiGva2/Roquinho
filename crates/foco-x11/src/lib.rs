@@ -1,5 +1,5 @@
-//! foco-x11: DOCK window (ARGB visual, EWMH hints), XShape input region, MIT-SHM memfd
-//! presentation, RandR monitors, xkb + Compose keyboard, CLIPBOARD paste and XGrabKey.
+//! foco-x11: DOCK window (ARGB visual, EWMH hints), `XShape` input region, MIT-SHM memfd
+//! presentation, `RandR` monitors, xkb + Compose keyboard, CLIPBOARD paste and `XGrabKey`.
 //!
 //! Single-threaded and non-blocking in the hot paths: `dispatch()` only drains what is already
 //! readable, `present()` is fire-and-forget (completion arrives as `ShmCompletion`), and
@@ -61,7 +61,7 @@ const DOUBLE_CLICK_SLOP: i32 = 5;
 
 /// Modifier bits that matter for shortcut matching (Shift, Control, Mod1/Alt, Mod4/Super).
 const SHORTCUT_MODS: u16 = seq::MOD_SHIFT | seq::MOD_CONTROL | seq::MOD_1 | seq::MOD_4;
-/// CapsLock and NumLock must not stop a shortcut from firing.
+/// `CapsLock` and `NumLock` must not stop a shortcut from firing.
 const LOCK_COMBOS: [u16; 4] = [0, 1 << 1, 1 << 4, (1 << 1) | (1 << 4)];
 
 /// An output as the app sees it.
@@ -206,6 +206,9 @@ fn s<E: std::fmt::Display>(what: &'static str) -> impl Fn(E) -> String {
 
 impl X11 {
     /// Connects to `$DISPLAY`, negotiates the extensions and builds the keymap.
+    ///
+    /// # Errors
+    /// Returns a message when the display cannot be opened or a required extension is missing.
     pub fn connect() -> Result<Self, String> {
         let (conn, screen_num) = RustConnection::connect(None).map_err(s("connect"))?;
         let root = conn.setup().roots[screen_num].root;
@@ -462,6 +465,9 @@ impl X11 {
     // ------------------------------------------------------------------ window
 
     /// Creates the (unmapped) window plus its shared-memory buffer of `w*h*4` bytes.
+    ///
+    /// # Errors
+    /// Returns a message when the window, the shared-memory segment or its attachment fails.
     pub fn create_window(&mut self, w: u16, h: u16) -> Result<(), String> {
         if self.win != 0 {
             return Err("window already created".into());
@@ -477,7 +483,7 @@ impl X11 {
             .flat_map(|d| d.visuals.iter())
             .find(|v| {
                 v.class == xproto::VisualClass::TRUE_COLOR
-                    && v.red_mask == 0xff0000
+                    && v.red_mask == 0x00ff_0000
                     && v.green_mask == 0xff00
                     && v.blue_mask == 0xff
             })
@@ -606,7 +612,7 @@ impl X11 {
         }
     }
 
-    /// Sets the XShape input region (window-local device pixels). Empty = click-through
+    /// Sets the `XShape` input region (window-local device pixels). Empty = click-through
     /// everywhere.
     pub fn set_input_region(&mut self, rects: &[IRect]) {
         if self.win == 0 || !self.has_shape {
@@ -1018,16 +1024,16 @@ impl X11 {
     /// Drains everything buffered or readable without blocking. Pointer motion is coalesced
     /// to the latest position.
     pub fn dispatch(&mut self) -> Vec<XEvent> {
-        let mut out: Vec<XEvent> = Vec::new();
-        let mut motion: Option<Point> = None;
-        let mut expose = false;
-        let mut screens = false;
-
         fn flush_motion(out: &mut Vec<XEvent>, motion: &mut Option<Point>) {
             if let Some(pos) = motion.take() {
                 out.push(XEvent::Input(InEvent::PointerMove { pos }));
             }
         }
+
+        let mut out: Vec<XEvent> = Vec::new();
+        let mut motion: Option<Point> = None;
+        let mut expose = false;
+        let mut screens = false;
 
         while let Some(ev) = self.next_event() {
             match ev {
@@ -1163,7 +1169,7 @@ impl X11 {
                 }
                 Event::XkbNewKeyboardNotify(_) | Event::XkbMapNotify(_) => self.keyboard_dirty = true,
                 Event::ConfigureNotify(c) if c.event == self.root && !c.override_redirect && c.above_sibling != 0 => {
-                    self.keep_on_top(c.window, c.above_sibling)
+                    self.keep_on_top(c.window, c.above_sibling);
                 }
                 Event::RandrScreenChangeNotify(_) | Event::RandrNotify(_) => screens = true,
                 Event::Error(e) if self.debug => eprintln!("foco-x11: X error: {e:?}"),

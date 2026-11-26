@@ -130,13 +130,12 @@ impl TextInput {
     }
 
     fn total_w(&mut self, m: &mut dyn TextMeasure) -> f32 {
-        match self.text_w {
-            Some(w) => w,
-            None => {
-                let w = if self.text.is_empty() { 0.0 } else { m.measure(&self.text, &self.style) };
-                self.text_w = Some(w);
-                w
-            }
+        if let Some(w) = self.text_w {
+            w
+        } else {
+            let w = if self.text.is_empty() { 0.0 } else { m.measure(&self.text, &self.style) };
+            self.text_w = Some(w);
+            w
         }
     }
 
@@ -203,7 +202,7 @@ impl TextInput {
         }
         while j > 0 {
             let p = self.prev_boundary(j);
-            if self.text[p..j].chars().next().is_some_and(|c| c.is_whitespace()) {
+            if self.text[p..j].chars().next().is_some_and(char::is_whitespace) {
                 break;
             }
             j = p;
@@ -216,7 +215,7 @@ impl TextInput {
         let len = self.text.len();
         while j < len {
             let n = self.next_boundary(j);
-            if self.text[j..n].chars().next().is_some_and(|c| c.is_whitespace()) {
+            if self.text[j..n].chars().next().is_some_and(char::is_whitespace) {
                 break;
             }
             j = n;

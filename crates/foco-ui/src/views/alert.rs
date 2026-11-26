@@ -1,7 +1,7 @@
 //! `AlertView.qml` (wave 3a): the "Dynamic Island" notice (info / done / added).
 //!
 //! 400x62 content: 40 px pet at x 18, a two-line text column, and a 30 px badge circle on the
-//! right whose icon pops in (scale 0 -> 1 OutBack 2.6 over 480 ms after a 180 ms pause, rotation
+//! right whose icon pops in (scale 0 -> 1 `OutBack` 2.6 over 480 ms after a 180 ms pause, rotation
 //! -40 -> 0 over 420 ms). Opacity: 110 ms pause + 240 ms Linear in, 100 ms out.
 //!
 //! Damage: the whole frame only while the fade runs; during the pop only the badge circle at

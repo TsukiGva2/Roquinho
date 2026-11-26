@@ -35,6 +35,7 @@ const ICONS: &[(&str, &str, bool)] = &[
 ];
 
 thread_local! {
+    #[expect(clippy::option_option, reason = "outer = parsed yet, inner = path data valid")]
     static PATHS: RefCell<Vec<Option<Option<Path>>>> = RefCell::new((0..ICONS.len()).map(|_| None).collect());
 }
 

@@ -68,11 +68,17 @@ pub struct Server {
 
 impl Server {
     /// Binds the per-user socket. `AddrInUse` means another instance is running.
+    ///
+    /// # Errors
+    /// Returns the socket error, including `AddrInUse` when the name is taken.
     pub fn bind() -> io::Result<Server> {
         Server::bind_named(&socket_name())
     }
 
     /// Binds an explicit abstract name (tests).
+    ///
+    /// # Errors
+    /// Same as [`Server::bind`].
     pub fn bind_named(name: &str) -> io::Result<Server> {
         let addr = SocketAddr::from_abstract_name(name.as_bytes())?;
         let listener = UnixListener::bind_addr(&addr)?;
@@ -91,7 +97,7 @@ impl Server {
             match self.listener.accept() {
                 Ok((mut conn, _)) => read_conn(&mut conn, &mut lines),
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
-                Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                Err(e) if e.kind() == io::ErrorKind::Interrupted => {} // retry
                 Err(_) => break,
             }
         }
@@ -112,7 +118,7 @@ fn read_conn(conn: &mut std::os::unix::net::UnixStream, lines: &mut Vec<String>)
         match conn.read(&mut chunk) {
             Ok(0) => break,
             Ok(n) => data.extend_from_slice(&chunk[..n]),
-            Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => {} // retry
             Err(_) => break,
         }
     }
@@ -209,7 +215,7 @@ mod tests {
             }
             assert_eq!(s.drain().len(), per);
         }
-        all.sort_by(|a, b| a.total_cmp(b));
+        all.sort_by(f64::total_cmp);
         let avg = all.iter().sum::<f64>() / all.len() as f64;
         println!(
             "ipc client send latency over {} sends: min {:.1} us, median {:.1} us, avg {:.1} us, p99 {:.1} us, max {:.1} us",

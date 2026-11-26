@@ -16,8 +16,9 @@ impl ShmBuf {
     pub fn new(len: usize) -> Result<(ShmBuf, OwnedFd), String> {
         let fd = memfd_create("foco-max-shm", MemfdFlags::CLOEXEC).map_err(|e| format!("memfd_create: {e}"))?;
         ftruncate(&fd, len as u64).map_err(|e| format!("ftruncate: {e}"))?;
-        // SAFETY: fresh anonymous mapping of a memfd we own, length checked by ftruncate; the
-        // mapping outlives all slices handed out (freed in Drop).
+        // SAFETY: null hint, so the kernel picks a fresh address and nothing existing is
+        // overwritten; maps the memfd we own and just sized to `len` with ftruncate; the
+        // mapping outlives all slices handed out (unmapped only in Drop).
         let ptr =
             unsafe { mmap(std::ptr::null_mut(), len, ProtFlags::READ | ProtFlags::WRITE, MapFlags::SHARED, &fd, 0) }
                 .map_err(|e| format!("mmap: {e}"))?;

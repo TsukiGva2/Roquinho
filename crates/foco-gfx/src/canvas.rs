@@ -141,6 +141,10 @@ impl<'a> Canvas<'a> {
 
     /// Decides how a primitive with device bounds `b` must be clipped.
     /// `None` = fully clipped away; `Some(None)` = no mask needed; `Some(Some(m))` = use `m`.
+    #[expect(
+        clippy::option_option,
+        reason = "None = clipped away, Some(None) = unmasked, Some(Some) = masked; see the doc comment"
+    )]
     fn clip_for(&mut self, b: IRect) -> Option<Option<Rc<Mask>>> {
         let c = self.cur.clip;
         let vis = b.intersect(&c)?;

@@ -314,14 +314,13 @@ impl QueueSection {
         }
         // rows that vanished under an interaction cancel it
         if let Some(g) = &mut self.grip {
-            match st.queue.iter().position(|t| t.tid == g.key) {
-                Some(i) => g.index = i,
-                None => {
-                    cx.damage.add(self.drag_damage_rect());
-                    self.grip = None;
-                    if matches!(self.active, Active::Btn(_)) {
-                        self.active = Active::None;
-                    }
+            if let Some(i) = st.queue.iter().position(|t| t.tid == g.key) {
+                g.index = i;
+            } else {
+                cx.damage.add(self.drag_damage_rect());
+                self.grip = None;
+                if matches!(self.active, Active::Btn(_)) {
+                    self.active = Active::None;
                 }
             }
         }
@@ -465,7 +464,7 @@ impl QueueSection {
         (handled, clicked)
     }
 
-    fn button_action(&mut self, cx: &mut Cx, key: &str, which: u8) {
+    fn button_action(cx: &mut Cx, key: &str, which: u8) {
         let Some(index) = Self::model_index(cx, key) else { return };
         let a = if which == 0 { Action::FocusFromQueue { index, silent: false } } else { Action::RemoveQueue(index) };
         cx.msgs.push(Msg::Act(a));
@@ -751,7 +750,7 @@ impl View for QueueSection {
                     if let Some(fi) = self.fades.iter().position(|f| f.key == key) {
                         let (_, clicked) = self.buttons_event(cx, fi, ev);
                         if let Some(which) = clicked {
-                            self.button_action(cx, &key, which);
+                            Self::button_action(cx, &key, which);
                         }
                     }
                     self.update_hover_at(cx, *pos);
@@ -1138,7 +1137,7 @@ mod tests {
             h.with_cx(now, |cx| {
                 q.update(cx);
                 q.layout(cx, Rect::new(18.0, 100.0, 512.0, q.height()));
-            })
+            });
         };
         frame(&mut q, &mut h, 0.0);
         // hover row 1

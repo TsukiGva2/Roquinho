@@ -16,7 +16,7 @@ pub const AUTO_ACCENT: Color = Color::rgb8(0x31, 0x5b, 0xef);
 
 /// Read-only view of the store (wave 2 implements it for `foco_core::Store`).
 pub trait StoreRead {
-    /// focus / queue / done / settings / total_done.
+    /// focus / queue / done / settings / `total_done`.
     fn state(&self) -> &StateFile;
     /// Epoch ms until which the pet celebrates.
     fn celebrate_until(&self) -> f64;
@@ -113,8 +113,8 @@ pub enum FocusId {
 pub enum Msg {
     /// Store mutation.
     Act(Action),
-    /// Shell command: Open, Collapse, Hide, Show, Quit, Open/CloseSettings, SetAccent,
-    /// SetAutostart, Screen(..).
+    /// Shell command: Open, Collapse, Hide, Show, Quit, Open/CloseSettings, `SetAccent`,
+    /// `SetAutostart`, Screen(..).
     Cmd(AppCmd),
     TipAnswer {
         never: bool,

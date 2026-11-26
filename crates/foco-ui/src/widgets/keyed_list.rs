@@ -138,7 +138,7 @@ pub struct KeyedList<T> {
     primed: bool,
 }
 
-fn apply(anim: &mut Anim, tr: &Option<Track>, now: Ms, add: bool) {
+fn apply(anim: &mut Anim, tr: Option<&Track>, now: Ms, add: bool) {
     if let Some(t) = tr {
         if add {
             if let Some(f) = t.from {
@@ -202,9 +202,9 @@ impl<T: Clone> KeyedList<T> {
                     seen: true,
                 };
                 if !first {
-                    apply(&mut e.op, &self.spec.add.opacity, now, true);
-                    apply(&mut e.sc, &self.spec.add.scale, now, true);
-                    apply(&mut e.dx, &self.spec.add.x, now, true);
+                    apply(&mut e.op, self.spec.add.opacity.as_ref(), now, true);
+                    apply(&mut e.sc, self.spec.add.scale.as_ref(), now, true);
+                    apply(&mut e.dx, self.spec.add.x.as_ref(), now, true);
                 }
                 self.entries.push(e);
                 changed = true;
@@ -214,9 +214,9 @@ impl<T: Clone> KeyedList<T> {
             if e.index.is_some() && !e.seen {
                 e.index = None;
                 e.gone_at = now + self.spec.remove.max_dur();
-                apply(&mut e.op, &self.spec.remove.opacity, now, false);
-                apply(&mut e.sc, &self.spec.remove.scale, now, false);
-                apply(&mut e.dx, &self.spec.remove.x, now, false);
+                apply(&mut e.op, self.spec.remove.opacity.as_ref(), now, false);
+                apply(&mut e.sc, self.spec.remove.scale.as_ref(), now, false);
+                apply(&mut e.dx, self.spec.remove.x.as_ref(), now, false);
                 changed = true;
             }
         }

@@ -1,11 +1,11 @@
 //! `TipBubble.qml` (wave 3a): the shortcut tip that hangs under the notch, above the pet.
 //!
 //! Timeline after `set_shown(true)` at `t0` (every segment is computed from `t0`, nothing is
-//! stepped): `appear` 0 -> 1 OutBack 1.8 over 520 ms after a 120 ms pause; the title types out
+//! stepped): `appear` 0 -> 1 `OutBack` 1.8 over 520 ms after a 120 ms pause; the title types out
 //! linearly over 900 ms starting when `appear` ends (`typing()` is true meanwhile, so the pet
 //! talks); then `rowsT` 0 -> 1 over 700 ms staggers the four shortcut rows and the button row.
-//! Hiding: `appear` -> 0 over 200 ms InCubic; `chars`/`rowsT` freeze where they were.
-//! The bubble floats 0 <-> 2 px (1600 ms InOutSine each way) while shown.
+//! Hiding: `appear` -> 0 over 200 ms `InCubic`; `chars`/`rowsT` freeze where they were.
+//! The bubble floats 0 <-> 2 px (1600 ms `InOutSine` each way) while shown.
 //!
 //! Damage: appear / float / content changes damage the transformed bubble extent (old u new);
 //! a new typed character damages only the title line, the row stagger only the rows + buttons
@@ -232,15 +232,12 @@ impl TipView {
 
     /// Float offset in px, quantised.
     fn float_q(&self, now: Ms) -> f32 {
-        match self.float_t0 {
-            Some(t0) => {
-                let y = 1.0 - self.theta(t0, now).cos();
-                (y / FLOAT_STEP).round() * FLOAT_STEP
-            }
-            None => {
-                let y = 1.0 - self.float_theta0.cos();
-                (y / FLOAT_STEP).round() * FLOAT_STEP
-            }
+        if let Some(t0) = self.float_t0 {
+            let y = 1.0 - self.theta(t0, now).cos();
+            (y / FLOAT_STEP).round() * FLOAT_STEP
+        } else {
+            let y = 1.0 - self.float_theta0.cos();
+            (y / FLOAT_STEP).round() * FLOAT_STEP
         }
     }
 

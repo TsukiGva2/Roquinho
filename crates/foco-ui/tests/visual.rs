@@ -1,4 +1,4 @@
-//! Writes PNGs of the notch and the widgets to `rs/target/ui-test/` (text is the PixSurface
+//! Writes PNGs of the notch and the widgets to `rs/target/ui-test/` (text is the `PixSurface`
 //! placeholder box) and checks a few pixels.
 
 use foco_base::{

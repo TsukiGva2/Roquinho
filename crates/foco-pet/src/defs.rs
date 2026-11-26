@@ -23,11 +23,11 @@ pub enum Ch {
     PopS,
     NotesT,
     Blink,
-    /// `Behavior on tilt` (320 ms OutBack).
+    /// `Behavior on tilt` (320 ms `OutBack`).
     Tilt,
-    /// `Behavior on lookX` (240 ms OutCubic).
+    /// `Behavior on lookX` (240 ms `OutCubic`).
     LookX,
-    /// `Behavior on lookY` (240 ms OutCubic).
+    /// `Behavior on lookY` (240 ms `OutCubic`).
     LookY,
 }
 
@@ -112,7 +112,10 @@ pub const BLINK2: usize = 18;
 pub const TALK: usize = 19;
 pub const NRUN: usize = 20;
 
-use Ch::*;
+use Ch::{
+    Blink, EarL, EarR, FaceDy, HandLY, HandRRot, HandRY, HeartsT, Jump, LookX, LookY, NotesT, PopS, SparkT, Squash,
+    TailA, TalkH, Tilt,
+};
 
 pub static DEFS: [Def; NRUN] = [
     // jumpAnim

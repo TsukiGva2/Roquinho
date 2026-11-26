@@ -1,4 +1,4 @@
-//! Single-threaded event reactor: one epoll, one `timerfd` (CLOCK_MONOTONIC) armed to the
+//! Single-threaded event reactor: one epoll, one `timerfd` (`CLOCK_MONOTONIC`) armed to the
 //! next foco-base deadline, and one `signalfd` (SIGTERM, SIGINT, SIGHUP).
 //!
 //! rustix has no `signalfd`, so it is declared directly against glibc (already linked by std,
@@ -42,21 +42,21 @@ extern "C" {
 
 const SIG_BLOCK: i32 = 0;
 const SFD_NONBLOCK: i32 = 0o4000;
-const SFD_CLOEXEC: i32 = 0o2000000;
+const SFD_CLOEXEC: i32 = 0o200_0000;
 
 /// Blocks the signals on the calling thread and returns a signalfd for them.
 fn make_signalfd() -> io::Result<OwnedFd> {
     let mut set = SigSet([0; 16]);
     // SAFETY: `set` is a valid, writable sigset_t-sized buffer; the signal numbers are valid.
     unsafe {
-        sigemptyset(&mut set);
+        sigemptyset(&raw mut set);
         for s in SIGNALS {
-            sigaddset(&mut set, s);
+            sigaddset(&raw mut set, s);
         }
-        if pthread_sigmask(SIG_BLOCK, &set, std::ptr::null_mut()) != 0 {
+        if pthread_sigmask(SIG_BLOCK, &raw const set, std::ptr::null_mut()) != 0 {
             return Err(io::Error::last_os_error());
         }
-        let fd = signalfd(-1, &set, SFD_NONBLOCK | SFD_CLOEXEC);
+        let fd = signalfd(-1, &raw const set, SFD_NONBLOCK | SFD_CLOEXEC);
         if fd < 0 {
             return Err(io::Error::last_os_error());
         }
@@ -78,6 +78,10 @@ fn io_err(e: Errno) -> io::Error {
 }
 
 impl Reactor {
+    /// Creates the epoll instance, the timerfd and the signalfd (blocking the handled signals).
+    ///
+    /// # Errors
+    /// Returns the OS error if any of the descriptors cannot be created or registered.
     pub fn new() -> io::Result<Self> {
         let epfd = epoll::create(epoll::CreateFlags::CLOEXEC).map_err(io_err)?;
         let timer = timerfd_create(TimerfdClockId::Monotonic, TimerfdFlags::CLOEXEC | TimerfdFlags::NONBLOCK)
@@ -89,6 +93,9 @@ impl Reactor {
     }
 
     /// Registers `fd` (level-triggered, readable). `token` is returned in `Ready::Fd`.
+    ///
+    /// # Errors
+    /// `InvalidInput` for a reserved token, otherwise the `epoll_ctl` error.
     pub fn add_fd(&mut self, fd: RawFd, token: u64) -> io::Result<()> {
         if token >= SIGNAL_TOKEN {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, "reserved token"));
@@ -126,6 +133,9 @@ impl Reactor {
 
     /// Sleeps until an fd is readable, a signal arrives, or `deadline` (a `mono_ms()` instant)
     /// passes. `None` = no timer. A deadline in the past returns promptly with `Ready::Timer`.
+    ///
+    /// # Errors
+    /// Returns the `epoll_wait` error (`EINTR` yields an empty batch instead).
     pub fn wait(&mut self, deadline: Option<Ms>) -> io::Result<Vec<Ready>> {
         self.arm(deadline);
         self.events.clear();

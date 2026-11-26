@@ -91,6 +91,8 @@ fn main() {
         if !x.has_buffered() {
             let left = end - now;
             let ts = rustix::fs::Timespec { tv_sec: left.as_secs() as _, tv_nsec: left.subsec_nanos() as _ };
+            // SAFETY: `x.fd()` is the X connection socket, owned by `x`, which outlives this
+            // borrow (`fd` is dropped at the end of this block).
             let fd = unsafe { BorrowedFd::borrow_raw(x.fd()) };
             let mut fds = [PollFd::new(&fd, PollFlags::IN)];
             let _ = poll(&mut fds, Some(&ts));

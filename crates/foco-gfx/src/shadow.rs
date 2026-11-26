@@ -116,6 +116,7 @@ fn build_tile(tw: usize, th: usize, wc: f32, hc: f32, corner: f32, sigma: f32, m
     Tile { data }
 }
 
+#[expect(clippy::inline_always, reason = "tiny per-pixel helper of the compositing inner loop; must inline")]
 #[inline(always)]
 fn div255(x: u32) -> u32 {
     (x + 128 + ((x + 128) >> 8)) >> 8
@@ -177,7 +178,10 @@ impl ShadowCache {
     /// optionally multiplied by `mask`. `color` is the premultiplied tint (pixmap byte order).
     /// `fresh` = the destination is known to be fully transparent (nothing drawn yet), so pixels
     /// are stored instead of blended.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "destination surface, clip, mask, shadow params and colour are independent inputs of one composite"
+    )]
     pub fn composite(
         &mut self,
         dst: &mut [u8],
@@ -266,6 +270,7 @@ impl ShadowCache {
     }
 }
 
+#[expect(clippy::inline_always, reason = "tiny per-pixel helper of the compositing inner loop; must inline")]
 #[inline(always)]
 fn put(d: &mut [u8], t: u8, lut: &[[u8; 4]; 256], inv: &[u32; 256], fresh: bool) {
     if t == 0 {
@@ -283,6 +288,7 @@ fn put(d: &mut [u8], t: u8, lut: &[[u8; 4]; 256], inv: &[u32; 256], fresh: bool)
     }
 }
 
+#[expect(clippy::inline_always, reason = "tiny per-pixel helper of the compositing inner loop; must inline")]
 #[inline(always)]
 fn blend(d: &mut [u8], t: u32, c0: u32, c1: u32, c2: u32, ca: u32) {
     let sa = div255(ca * t);

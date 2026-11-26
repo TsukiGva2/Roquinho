@@ -9,6 +9,9 @@ static SEQ: AtomicU32 = AtomicU32::new(0);
 
 /// Atomic write like `QSaveFile`: creates parent directories, follows a symlinked target,
 /// writes a temp file next to it and renames it over the target (keeping the old permissions).
+///
+/// # Errors
+/// Returns the I/O error from creating the directory, writing the temp file or renaming it.
 pub fn atomic_write(path: &Path, data: &[u8]) -> io::Result<()> {
     let target: PathBuf = match fs::canonicalize(path) {
         Ok(p) => p,

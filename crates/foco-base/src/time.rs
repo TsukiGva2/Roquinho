@@ -19,12 +19,12 @@ pub fn mono_ms() -> Ms {
 pub fn epoch_ms() -> f64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs_f64() * 1000.0)
-        .unwrap_or(0.0)
+        .map_or(0.0, |d| d.as_secs_f64() * 1000.0)
 }
 
 #[repr(C)]
 #[derive(Clone, Copy)]
+#[expect(clippy::struct_field_names, reason = "mirrors the field names of the C `struct tm`")]
 struct Tm {
     tm_sec: i32,
     tm_min: i32,
@@ -60,7 +60,7 @@ fn local_tm(epoch_ms: f64) -> Option<Tm> {
         tm_zone: std::ptr::null(),
     };
     // SAFETY: `secs` and `tm` are valid for the call; localtime_r only writes into `tm`.
-    let r = unsafe { localtime_r(&secs, &mut tm) };
+    let r = unsafe { localtime_r(&raw const secs, &raw mut tm) };
     if r.is_null() {
         None
     } else {
@@ -71,7 +71,7 @@ fn local_tm(epoch_ms: f64) -> Option<Tm> {
 fn mk(mut tm: Tm) -> f64 {
     tm.tm_isdst = -1;
     // SAFETY: `tm` is a valid, initialised struct; mktime may normalise it.
-    unsafe { mktime(&mut tm) as f64 * 1000.0 }
+    unsafe { mktime(&raw mut tm) as f64 * 1000.0 }
 }
 
 /// Local midnight at or before `epoch_ms` (JS `d.setHours(0,0,0,0)`), as epoch ms.

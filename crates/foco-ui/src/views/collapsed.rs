@@ -20,7 +20,7 @@ use std::f32::consts::PI;
 const CYCLE_MS: Ms = 5000.0;
 /// First half of the swap animation (fade out + slide up), after which the shown task changes.
 const SWAP_OUT_MS: Ms = 140.0;
-/// Half period of the live dot's opacity pulse (900 ms InOutSine each way).
+/// Half period of the live dot's opacity pulse (900 ms `InOutSine` each way).
 const LIVE_HALF_MS: f32 = 900.0;
 /// Quantisation of the live dot's opacity (steps of 1/8: a 6 px dot shows no finer change).
 const LIVE_STEP: f32 = 1.0 / 8.0;
@@ -201,7 +201,7 @@ impl CollapsedView {
         self.op.value(now) > 0.01
     }
 
-    /// Opacity 120 ms pause + 240 OutCubic in / 90 ms out; scale 0.92 <-> 1 over 320 ms.
+    /// Opacity 120 ms pause + 240 `OutCubic` in / 90 ms out; scale 0.92 <-> 1 over 320 ms.
     pub fn set_shown(&mut self, v: bool, now: Ms) {
         if v == self.shown {
             return;

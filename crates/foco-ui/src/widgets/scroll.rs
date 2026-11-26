@@ -2,7 +2,7 @@
 
 use foco_base::{Anim, Easing, Ms, Wake};
 
-/// Scroll offset with 200 ms OutCubic wheel steps.
+/// Scroll offset with 200 ms `OutCubic` wheel steps.
 #[derive(Clone, Copy, Debug)]
 pub struct Scroll {
     off: Anim,

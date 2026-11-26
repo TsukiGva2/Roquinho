@@ -208,6 +208,9 @@ pub const TIRED_MS: i64 = 50 * 60_000;
 
 impl StateFile {
     /// Parses leniently; `Err` only for invalid JSON.
+    ///
+    /// # Errors
+    /// Returns the `serde_json` error when `s` is not valid JSON.
     pub fn from_json(s: &str) -> Result<StateFile, serde_json::Error> {
         serde_json::from_str(s)
     }
@@ -379,7 +382,7 @@ mod tests {
         roundtrip(REAL);
         let st = StateFile::from_json(REAL).unwrap();
         assert_eq!(st.settings.last_tip_day, "2026-11-24");
-        assert_eq!(st.last_seen, 1795550528319);
+        assert_eq!(st.last_seen, 1_795_550_528_319);
         assert!(st.settings.music_enabled);
     }
 
@@ -454,8 +457,8 @@ mod tests {
         assert_eq!(to_base36(0), "0");
         assert_eq!(to_base36(35), "z");
         assert_eq!(to_base36(36), "10");
-        let u = make_uid(1795550528319.0, 123456789);
-        assert_eq!(u.len(), to_base36(1795550528319).len() + 5);
+        let u = make_uid(1_795_550_528_319.0, 123_456_789);
+        assert_eq!(u.len(), to_base36(1_795_550_528_319).len() + 5);
         assert!(u.chars().all(|c| c.is_ascii_alphanumeric()));
     }
 

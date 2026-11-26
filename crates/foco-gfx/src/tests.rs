@@ -17,23 +17,20 @@ pub fn out_dir() -> std::path::PathBuf {
 pub fn save_png(name: &str, buf: &[u8], w: u32, h: u32, bg: Option<[u8; 3]>) {
     let mut rgba = vec![0u8; buf.len()];
     for (s, d) in buf.chunks_exact(4).zip(rgba.chunks_exact_mut(4)) {
-        match bg {
-            Some(b) => {
-                let inv = 255 - s[3] as u32;
-                d[0] = (s[2] as u32 + b[0] as u32 * inv / 255).min(255) as u8;
-                d[1] = (s[1] as u32 + b[1] as u32 * inv / 255).min(255) as u8;
-                d[2] = (s[0] as u32 + b[2] as u32 * inv / 255).min(255) as u8;
-                d[3] = 255;
-            }
-            None => {
-                // un-premultiply for a transparent PNG
-                let a = s[3] as u32;
-                let un = |v: u8| ((v as u32 * 255 + a / 2).checked_div(a).unwrap_or(0)).min(255) as u8;
-                d[0] = un(s[2]);
-                d[1] = un(s[1]);
-                d[2] = un(s[0]);
-                d[3] = s[3];
-            }
+        if let Some(b) = bg {
+            let inv = 255 - s[3] as u32;
+            d[0] = (s[2] as u32 + b[0] as u32 * inv / 255).min(255) as u8;
+            d[1] = (s[1] as u32 + b[1] as u32 * inv / 255).min(255) as u8;
+            d[2] = (s[0] as u32 + b[2] as u32 * inv / 255).min(255) as u8;
+            d[3] = 255;
+        } else {
+            // un-premultiply for a transparent PNG
+            let a = s[3] as u32;
+            let un = |v: u8| ((v as u32 * 255 + a / 2).checked_div(a).unwrap_or(0)).min(255) as u8;
+            d[0] = un(s[2]);
+            d[1] = un(s[1]);
+            d[2] = un(s[0]);
+            d[3] = s[3];
         }
     }
     let pm = tiny_skia::Pixmap::from_vec(rgba, tiny_skia::IntSize::from_wh(w, h).unwrap()).unwrap();
@@ -44,7 +41,7 @@ fn full(w: u32, h: u32, r: &mut Renderer, bg: [u8; 3], f: &mut dyn FnMut(&mut Ca
     let mut buf = vec![0u8; (w * h * 4) as usize];
     r.render(&mut buf, w, h, &[IRect::new(0, 0, w as i32, h as i32)], &mut |c| {
         c.fill_rrect(Rect::new(0.0, 0.0, w as f32, h as f32), 0.0, &Fill::Solid(Color::rgb8(bg[0], bg[1], bg[2])));
-        f(c)
+        f(c);
     });
     buf
 }
@@ -55,8 +52,8 @@ fn metrics_match_qt() {
     let mut r = Renderer::new();
     let mut buf = vec![0u8; 4 * 4 * 4];
     let hello = [
-        (10.0, 24.234375, 14.0),
-        (11.0, 26.640625, 15.0),
+        (10.0, 24.234_375, 14.0),
+        (11.0, 26.640_625, 15.0),
         (12.0, 29.09375, 17.0),
         (13.0, 31.5, 18.0),
         (14.0, 33.9375, 20.0),
@@ -77,7 +74,7 @@ fn metrics_match_qt() {
         let w2 = c.measure("00:12:34", &st);
         let w3 = c.measure("Ao", &st.clone().with_spacing(2.0));
         println!("kern: {w1} (qt 118.203125)  digits: {w2} (qt 52.46875)  ls2: {w3} (qt 20.15625)");
-        assert!((w1 - 118.203125).abs() < 0.5);
+        assert!((w1 - 118.203_125).abs() < 0.5);
         // Qt's hinted '4' is 1 px wider than its design advance; everything else matches.
         assert!((w2 - 52.46875).abs() < 1.1);
         assert!((w3 - 20.15625).abs() < 0.1);
@@ -180,13 +177,13 @@ fn icon_sheet() {
     for n in icons::names() {
         let mut b = vec![0u8; 40 * 40 * 4];
         r.render(&mut b, 40, 40, &[IRect::new(0, 0, 40, 40)], &mut |c| {
-            icons::draw(c, n, Rect::new(4.0, 4.0, 32.0, 32.0), Color::WHITE, 1.8)
+            icons::draw(c, n, Rect::new(4.0, 4.0, 32.0, 32.0), Color::WHITE, 1.8);
         });
         assert!(b.chunks_exact(4).any(|p| p[3] > 128), "icon {n} empty");
     }
 }
 
-/// Alpha of Qt's RectangularShadow (blur 34, spread -4, radius 33, offset.y 14, opacity .65) over
+/// Alpha of Qt's `RectangularShadow` (blur 34, spread -4, radius 33, offset.y 14, opacity .65) over
 /// 0x80 gray, sampled from a real Qt 6 render: shadow item at (100,60) 300x200.
 const QT_V: [f32; 21] = [
     0.0, 0.012, 0.012, 0.036, 0.06, 0.096, 0.156, 0.216, 0.3, 0.397, 0.505, 0.613, 0.721, 0.817, 0.901, 0.962, 0.998,
@@ -392,8 +389,10 @@ fn mock_panel(c: &mut Canvas, icon_names: &[&str]) {
     }
 }
 
+type Part = (&'static str, fn(&mut Canvas));
+
 #[test]
-#[ignore]
+#[ignore = "perf: run with --release -- --ignored --nocapture"]
 fn bench() {
     use std::time::Instant;
     let mut r = Renderer::new();
@@ -439,7 +438,6 @@ fn bench() {
     println!("  of which: black rrect only: {:.0} us", t.elapsed().as_secs_f64() * 1e6 / n as f64);
 
     // breakdown
-    type Part = (&'static str, fn(&mut Canvas));
     let parts: [Part; 5] = [
         ("empty (clear + copy only)", |_c| {}),
         ("shadow", |c| {
@@ -503,7 +501,7 @@ fn bench() {
 
 /// Renders the strings of the Qt reference grab (`g.qml`) at DPR 1 for ink comparisons.
 #[test]
-#[ignore]
+#[ignore = "manual: writes cmp_text.png for visual comparison with the Qt reference grab"]
 fn qt_text_compare() {
     let mut r = Renderer::new();
     let (w, h) = (438u32, 271u32);
@@ -525,7 +523,7 @@ fn qt_text_compare() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "perf: run with --release -- --ignored --nocapture"]
 fn bench_shadow_tile() {
     use std::time::Instant;
     let mut r = Renderer::new();

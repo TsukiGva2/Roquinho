@@ -3,7 +3,7 @@
 //! * [`Renderer`] clears each damaged rectangle, lets the caller paint it through a [`Canvas`]
 //!   (the `foco_base::Surface` implementation over tiny-skia) and copies it into the X11 buffer.
 //! * Text is unhinted grayscale coverage at fractional positions, rasterised lazily from
-//!   memory-mapped fonts (ttf-parser + ab_glyph_rasterizer) and cached per glyph/size/phase.
+//!   memory-mapped fonts (ttf-parser + `ab_glyph_rasterizer`) and cached per glyph/size/phase.
 //! * Shadows are analytic Gaussian rounded-box shadows composited from cached corner tiles.
 //! * [`icons`] ports every icon of `qml/Icon.qml`.
 

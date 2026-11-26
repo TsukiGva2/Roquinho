@@ -1,6 +1,6 @@
 //! `DoneSection.qml`: "DESTRUÍDAS HOJE", collapsible, with a restore button per row.
 //!
-//! Header 26 px (label + green count + chevron rotating 220 ms OutCubic), rows 34 px with 2 px
+//! Header 26 px (label + green count + chevron rotating 220 ms `OutCubic`), rows 34 px with 2 px
 //! spacing (strikethrough title, spent time, restore button shown on hover). Only today's done
 //! items are listed. The rows are a plain `Repeater` in the QML: no add/remove transitions.
 //!

@@ -37,7 +37,7 @@ fn main() -> ExitCode {
     if cli::forward(&line) {
         return ExitCode::SUCCESS;
     }
-    match run(line, main_us, t_main) {
+    match run(&line, main_us, t_main) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("foco-max: {e}");
@@ -57,7 +57,7 @@ fn scale_to_logical(ev: Event) -> Event {
     }
 }
 
-fn run(line: String, main_us: Option<u64>, t_main: Option<std::time::Instant>) -> Result<(), String> {
+fn run(line: &str, main_us: Option<u64>, t_main: Option<std::time::Instant>) -> Result<(), String> {
     let epoch = epoch_ms();
     let mut rc = Rc::load(paths::rc_path());
     let shortcuts: Vec<(String, String)> = rc::shortcut_list(&mut rc)
@@ -75,7 +75,7 @@ fn run(line: String, main_us: Option<u64>, t_main: Option<std::time::Instant>) -
     let mut server = ipc::Server::bind().map_err(|e| {
         if e.kind() == std::io::ErrorKind::AddrInUse {
             // lost a race with another instance
-            let _ = cli::forward(&line);
+            let _ = cli::forward(line);
         }
         format!("ipc: {e}")
     })?;
@@ -87,7 +87,7 @@ fn run(line: String, main_us: Option<u64>, t_main: Option<std::time::Instant>) -
     x11.set_input_region(&[IRect::new(0, 0, 1, 1)]);
 
     let exe = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("foco-max"));
-    let initial = (!line.is_empty()).then(|| line.clone());
+    let initial = (!line.is_empty()).then(|| line.to_string());
     let mut now = mono_ms();
     let mut app = App::new(
         AppInit {
@@ -153,15 +153,15 @@ fn run(line: String, main_us: Option<u64>, t_main: Option<std::time::Instant>) -
                             work = true;
                         }
                         match e {
-                            XEvent::Input(ev) => app.on_event(scale_to_logical(ev), now, epoch),
+                            XEvent::Input(ev) => app.on_event(&scale_to_logical(ev), now, epoch),
                             XEvent::Shortcut(id) => app.on_shortcut(&id, now, epoch),
                             XEvent::FocusIn => {
                                 trace!("trace: FocusIn");
-                                app.on_event(Event::FocusIn, now, epoch)
+                                app.on_event(&Event::FocusIn, now, epoch);
                             }
                             XEvent::FocusOut => {
                                 trace!("trace: FocusOut");
-                                app.on_event(Event::FocusOut, now, epoch)
+                                app.on_event(&Event::FocusOut, now, epoch);
                             }
                             XEvent::Expose => {
                                 exposed = true;
@@ -169,7 +169,7 @@ fn run(line: String, main_us: Option<u64>, t_main: Option<std::time::Instant>) -
                             }
                             XEvent::ScreensChanged => app.on_screens_changed(now),
                             XEvent::PresentDone => {}
-                            XEvent::PasteText(t) => app.on_event(Event::Paste(t), now, epoch),
+                            XEvent::PasteText(t) => app.on_event(&Event::Paste(t), now, epoch),
                         }
                     }
                 }
@@ -231,7 +231,7 @@ fn run(line: String, main_us: Option<u64>, t_main: Option<std::time::Instant>) -
             x11.present(&rects);
             frame_n += 1;
             if trace::on() {
-                let px: i64 = rects.iter().map(|r| r.area()).sum();
+                let px: i64 = rects.iter().map(IRect::area).sum();
                 eprintln!(
                     "frame {frame_n} t={now:.0} wake={why} upd {upd_us} us paint {paint_us} us present {} us rects {} px {px} first {:?}",
                     trace::since_us(t_present),

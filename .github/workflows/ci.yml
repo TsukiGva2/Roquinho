@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Replaces (does not extend) `rustflags` from .cargo/config.toml, dropping target-cpu=native
+  # so cached artifacts are portable across runner CPUs.
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # Arch matches the dev machine and the hard-coded font paths in crates/foco-gfx/src/fonts.rs.
+    container: archlinux:latest
+    steps:
+      - name: Install system packages
+        # rustup provides the toolchain pinned in rust-toolchain.toml (installed below), so the
+        # clippy and rustfmt versions do not drift with Arch's rolling `rust` package. Tests need
+        # the fonts (text metrics) and the xkb data + X11 Compose tables (keyboard tests); none of
+        # them needs an X server.
+        # The archlinux image's pacman.conf has a NoExtract rule that drops every X11 locale
+        # except en_US, but the keyboard test composes dead keys for pt_BR.UTF-8.
+        run: |
+          sed -i '/^NoExtract/d' /etc/pacman.conf
+          pacman -Syu --noconfirm --needed rustup gcc pkgconf libxkbcommon git \
+            noto-fonts inter-font ttf-dejavu xkeyboard-config libx11
+
+      - uses: actions/checkout@v4
+
+      # Explicit: rustup 1.28+ no longer installs the toolchain implicitly. With no arguments
+      # it reads rust-toolchain.toml. This runs before rust-cache so the cache key sees the
+      # right rustc.
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --all-targets
+
+      - name: Doctests
+        run: cargo test --workspace --doc

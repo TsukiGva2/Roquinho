@@ -65,13 +65,13 @@ impl Color {
         Color { r: c[0] as f32 / 65535.0, g: c[1] as f32 / 65535.0, b: c[2] as f32 / 65535.0, a }
     }
 
-    /// `QColor::lighter(factor_percent)`; `factor` is the Qt.lighter() factor (1.35 = 135%).
+    /// `QColor::lighter(factor_percent)`; `factor` is the `Qt.lighter()` factor (1.35 = 135%).
     /// Ported with Qt's 16-bit HSV integer arithmetic.
     pub fn lighter(self, factor: f32) -> Color {
         let f = (factor as f64 * 100.0).round() as i64;
         self.lighter_pct(f)
     }
-    /// `QColor::darker(factor)`; `factor` as in Qt.darker() (2.0 = half brightness).
+    /// `QColor::darker(factor)`; `factor` as in `Qt.darker()` (2.0 = half brightness).
     pub fn darker(self, factor: f32) -> Color {
         let f = (factor as f64 * 100.0).round() as i64;
         self.darker_pct(f)

@@ -170,13 +170,13 @@ impl InputField {
         match self.input.key(cx, k) {
             InputOutcome::Submit { ctrl } => self.submit(cx, ctrl),
             InputOutcome::Escape => {
-                if !self.input.is_empty() {
-                    self.input.clear();
-                    cx.damage.add(self.input.rect());
-                } else {
+                if self.input.is_empty() {
                     // `input.focus = false; f.escapePressed()`
                     *cx.focus = FocusId::None;
                     cx.msgs.push(Msg::Cmd(AppCmd::Collapse));
+                } else {
+                    self.input.clear();
+                    cx.damage.add(self.input.rect());
                 }
             }
             InputOutcome::Paste => cx.msgs.push(Msg::RequestPaste),
@@ -515,7 +515,7 @@ mod tests {
                 v.event(cx, &Event::PointerMove { pos: p });
                 v.event(cx, &Event::PointerDown { pos: p, button: Button::Left, clicks: 1 });
                 v.event(cx, &Event::PointerUp { pos: p, button: Button::Left });
-            })
+            });
         };
         click(&mut h, &mut v, 1.0);
         assert_eq!(h.focus, FocusId::NewTask);

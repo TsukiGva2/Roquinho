@@ -9,10 +9,11 @@
 //!   a key is written as `\`;
 //! * an unquoted `a,b` is a string *list* to Qt; here [`Rc::get`] returns it joined with `,`
 //!   (which is what `platform_x11.cpp` does), so `Meta+Alt+,` and `"Meta+Alt+,"` read the same;
-//! * unknown sections/keys survive a read-modify-write; comments are dropped, like QSettings.
+//! * unknown sections/keys survive a read-modify-write; comments are dropped, like `QSettings`.
 
 use crate::fsutil;
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -96,7 +97,7 @@ impl Rc {
         self.set(GENERAL, "accent", color.unwrap_or(""));
     }
 
-    /// The file contents QSettings would write.
+    /// The file contents `QSettings` would write.
     pub fn render(&self) -> String {
         let mut out = String::new();
         let mut first = true;
@@ -127,6 +128,9 @@ impl Rc {
     }
 
     /// Writes the file atomically, only if something changed. `Ok(true)` if it wrote.
+    ///
+    /// # Errors
+    /// Returns the I/O error from the atomic write.
     pub fn save(&mut self) -> io::Result<bool> {
         if !self.dirty {
             return Ok(false);
@@ -155,12 +159,11 @@ pub const SHORTCUT_DEFAULTS: [(&str, &str); 5] = [
 pub fn shortcut_list(rc: &mut Rc) -> Vec<(String, String)> {
     let mut out = Vec::with_capacity(SHORTCUT_DEFAULTS.len());
     for (id, def) in SHORTCUT_DEFAULTS {
-        match rc.get("shortcuts", id) {
-            Some(v) => out.push((id.to_string(), v.to_string())),
-            None => {
-                rc.set("shortcuts", id, def);
-                out.push((id.to_string(), def.to_string()));
-            }
+        if let Some(v) = rc.get("shortcuts", id) {
+            out.push((id.to_string(), v.to_string()));
+        } else {
+            rc.set("shortcuts", id, def);
+            out.push((id.to_string(), def.to_string()));
         }
     }
     let _ = rc.save();
@@ -182,10 +185,9 @@ pub fn normalize_sequence(text: &str) -> String {
             .iter()
             .map(|m| match *m {
                 "W" => "Meta",
-                "A" => "Alt",
                 "C" => "Ctrl",
                 "S" => "Shift",
-                _ => "Alt",
+                _ => "Alt", // "A" and anything unknown
             })
             .collect();
         match key.as_str() {
@@ -296,10 +298,10 @@ fn escape_key(key: &str, section: bool) -> String {
         } else if c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.') {
             out.push(c);
         } else if (c as u32) <= 0xFF {
-            out.push_str(&format!("%{:02X}", c as u32));
+            let _ = write!(out, "%{:02X}", c as u32);
         } else {
             for u in c.encode_utf16(&mut [0; 2]) {
-                out.push_str(&format!("%U{:04X}", u));
+                let _ = write!(out, "%U{u:04X}");
             }
         }
     }
@@ -338,7 +340,7 @@ fn unescape_key(s: &str) -> String {
     out
 }
 
-/// `QSettingsPrivate::iniEscapedString` for a plain QString value.
+/// `QSettingsPrivate::iniEscapedString` for a plain `QString` value.
 fn escape_value(v: &str) -> String {
     let mut out = String::with_capacity(v.len() + 2);
     let mut quotes = false;
@@ -352,7 +354,7 @@ fn escape_value(v: &str) -> String {
             quotes = true;
         }
         if esc_digit && hex_digit(c) {
-            out.push_str(&format!("\\x{:x}", c as u32));
+            let _ = write!(out, "\\x{:x}", c as u32);
             continue;
         }
         esc_digit = false;
@@ -373,7 +375,7 @@ fn escape_value(v: &str) -> String {
                 out.push(c);
             }
             c if (c as u32) <= 0x1F => {
-                out.push_str(&format!("\\x{:x}", c as u32));
+                let _ = write!(out, "\\x{:x}", c as u32);
                 esc_digit = true;
             }
             c => out.push(c),

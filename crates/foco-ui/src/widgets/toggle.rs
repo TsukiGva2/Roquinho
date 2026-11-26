@@ -12,7 +12,7 @@ pub struct Toggle {
     checked: bool,
     /// 0 = off, 1 = on (colour, 180 ms).
     on: Anim,
-    /// Knob x offset (240 ms OutBack 1.6).
+    /// Knob x offset (240 ms `OutBack` 1.6).
     knob: Anim,
     ma: MouseArea,
     shown: (f32, f32),

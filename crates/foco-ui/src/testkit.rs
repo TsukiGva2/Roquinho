@@ -180,6 +180,9 @@ impl Harness {
         f(&pc)
     }
     /// A 792x792 transparent surface with the global scale applied (logical coordinates).
+    ///
+    /// # Panics
+    /// If the surface cannot be allocated.
     pub fn surface() -> PixSurface {
         let mut s = PixSurface::new(WIN_DEV as u32, WIN_DEV as u32).expect("surface");
         s.scale(S, S);

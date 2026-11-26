@@ -32,6 +32,38 @@ rustix = { version = "1", features = ["event", "time", "fs", "process", "net", "
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# Pixel/geometry math: numeric casts are pervasive and intentional.
+cast_possible_truncation = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+cast_possible_wrap = "allow"
+cast_lossless = "allow"
+# Exact float equality is deliberate (anim targets, change detection).
+float_cmp = "allow"
+# Noise on every getter; not worth ~300 attributes.
+must_use_candidate = "allow"
+return_self_not_must_use = "allow"
+# x/y/w/h/r and similar short names are idiomatic in geometry code.
+many_single_char_names = "allow"
+similar_names = "allow"
+module_name_repetitions = "allow"
+# UI state structs are naturally sets of independent flags (hovered, pressed, active, ...).
+struct_excessive_bools = "allow"
+# Paint/layout/event-dispatch fns are long linear sequences; splitting them hurts readability.
+too_many_lines = "allow"
+# Restriction lints (not part of pedantic).
+undocumented_unsafe_blocks = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+
 [profile.release]
 opt-level = 3
 lto = "fat"

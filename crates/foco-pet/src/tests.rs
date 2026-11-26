@@ -325,9 +325,9 @@ fn expressions_follow_qml_priority() {
     p.update(2000.0);
     assert!(!p.reacting());
     assert_eq!(p.expr(), Expr::Content);
-    assert_eq!(Expr::Focus.mouth(PetKind::Cat), expr::Mouth::Cat);
-    assert_eq!(Expr::Focus.mouth(PetKind::Ghost), expr::Mouth::Smile);
-    assert_eq!(Expr::Celebrate.eyes(), expr::Eyes::Star);
+    assert_eq!(Expr::Focus.mouth(PetKind::Cat), Mouth::Cat);
+    assert_eq!(Expr::Focus.mouth(PetKind::Ghost), Mouth::Smile);
+    assert_eq!(Expr::Celebrate.eyes(), Eyes::Star);
 }
 
 #[test]

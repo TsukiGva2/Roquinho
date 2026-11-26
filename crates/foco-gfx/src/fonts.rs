@@ -14,7 +14,7 @@ pub enum FontStyle {
     /// renders weights 500/600 with the Regular face and only 700 with the Bold face.
     #[default]
     QtDefault,
-    /// Inter (Regular / Medium / SemiBold / Bold from `Inter.ttc`).
+    /// Inter (Regular / Medium / `SemiBold` / Bold from `Inter.ttc`).
     Inter,
 }
 
@@ -83,6 +83,9 @@ pub fn map_file(path: &str) -> Option<&'static [u8]> {
         rustix::mm::mmap(std::ptr::null_mut(), len, rustix::mm::ProtFlags::READ, rustix::mm::MapFlags::PRIVATE, &f, 0)
     };
     match mapped {
+        // SAFETY: `p` points to a successful READ mapping of exactly `len` bytes (the file size
+        // above), never unmapped and not written through, so the shared slice is valid for
+        // 'static; the mapping outlives `f`, closing the fd does not invalidate it.
         Ok(p) => Some(unsafe { std::slice::from_raw_parts(p as *const u8, len) }),
         Err(_) => std::fs::read(path).ok().map(|v| &*Box::leak(v.into_boxed_slice())),
     }
@@ -119,6 +122,10 @@ fn find_in_collection(data: &'static [u8], family: &str, weight: u16, hint: u32)
 }
 
 /// One loaded face with its small per-face caches.
+#[expect(
+    clippy::struct_field_names,
+    reason = "`face` is the parsed ttf face; the other fields are its caches and metrics"
+)]
 pub struct Face {
     pub face: ttf::Face<'static>,
     pub upem: f32,
@@ -132,6 +139,8 @@ pub struct Face {
     map: HashMap<char, u16>,
     kern_lookups: Option<Vec<u16>>,
     kern_cache: HashMap<u32, i16>,
+    /// Lazily probed tabular-figure glyphs: `None` = not probed, `Some(None)` = font has none.
+    #[expect(clippy::option_option, reason = "outer = probed yet, inner = font has the glyphs")]
     tab: Option<Option<[u16; 10]>>,
 }
 
@@ -140,8 +149,7 @@ impl Face {
         let upem = face.units_per_em() as f32;
         let (sp, ss) = face
             .strikeout_metrics()
-            .map(|m| (m.position as f32, m.thickness as f32))
-            .unwrap_or((upem * 0.3, upem * 0.05));
+            .map_or((upem * 0.3, upem * 0.05), |m| (m.position as f32, m.thickness as f32));
         let asc = face.ascender() as f32;
         let desc = -(face.descender() as f32);
         Face {
@@ -167,14 +175,14 @@ impl Face {
             if v != 0xFFFF {
                 return v;
             }
-            let g = self.face.glyph_index(c).map(|g| g.0).unwrap_or(0);
+            let g = self.face.glyph_index(c).map_or(0, |g| g.0);
             self.ascii[cu as usize] = g;
             return g;
         }
         if let Some(&g) = self.map.get(&c) {
             return g;
         }
-        let g = self.face.glyph_index(c).map(|g| g.0).unwrap_or(0);
+        let g = self.face.glyph_index(c).map_or(0, |g| g.0);
         self.map.insert(c, g);
         g
     }
@@ -257,12 +265,11 @@ impl Face {
             let mut out = [0u16; 10];
             let mut ok = true;
             for (i, n) in NAMES.iter().enumerate() {
-                match self.face.glyph_index_by_name(n) {
-                    Some(g) => out[i] = g.0,
-                    None => {
-                        ok = false;
-                        break;
-                    }
+                if let Some(g) = self.face.glyph_index_by_name(n) {
+                    out[i] = g.0;
+                } else {
+                    ok = false;
+                    break;
                 }
             }
             self.tab = Some(if ok { Some(out) } else { None });
@@ -273,6 +280,8 @@ impl Face {
 
 /// All faces, loaded on first use.
 pub struct Fonts {
+    /// Outer `None` = not loaded yet, `Some(None)` = file missing.
+    #[expect(clippy::option_option, reason = "outer = loaded yet, inner = file exists")]
     faces: [Option<Option<Box<Face>>>; SLOT_COUNT],
     pub style: FontStyle,
 }

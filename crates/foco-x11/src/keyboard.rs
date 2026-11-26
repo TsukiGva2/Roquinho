@@ -233,7 +233,7 @@ impl Keyboard {
                 .filter(|s| s.key_char().is_some() && !is_dead(s.raw()))
         };
         let pick = lvl0.or(Some(sym).filter(|s| !is_dead(s.raw())));
-        if let Some(c) = pick.and_then(|s| s.key_char()) {
+        if let Some(c) = pick.and_then(Keysym::key_char) {
             if c == ' ' {
                 return Key::Space;
             }

@@ -112,7 +112,7 @@ pub enum ScreenArg {
     Next,
     /// Primary monitor (`primary` / `principal`).
     Primary,
-    /// A RandR output name such as `HDMI-2`.
+    /// A `RandR` output name such as `HDMI-2`.
     Named(String),
 }
 
@@ -180,8 +180,7 @@ pub fn parse_command(name: &str, arg: &str) -> AppCmd {
             "primary" | "principal" => ScreenArg::Primary,
             other => ScreenArg::Named(other.to_string()),
         }),
-        // music and autostart no-ops
-        "play" | "next" | "prev" | "start" => AppCmd::Ignored,
+        // "play" | "next" | "prev" | "start" (music and autostart) are no-ops too
         _ => AppCmd::Ignored,
     }
 }

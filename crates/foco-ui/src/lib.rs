@@ -1,4 +1,4 @@
-//! foco-ui: widgets (IconButton, Toggle, pill, TextInput, animated list, scroll), the notch
+//! foco-ui: widgets (`IconButton`, Toggle, pill, `TextInput`, animated list, scroll), the notch
 //! silhouette and the views. Views talk to the store through [`StoreRead`], measure text through
 //! [`TextMeasure`] and reach the mascot through [`pet::PetLike`], so this crate depends only on
 //! `foco-base`; the `foco-max` binary wires the real implementations.

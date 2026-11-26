@@ -35,7 +35,7 @@ pub const QUIP_TIPS_OFF: &str = "Beleza, calo a boca. Milagre.";
 
 fn seed_from_time() -> u64 {
     let t = epoch_ms().to_bits();
-    let a = &t as *const u64 as u64;
+    let a = &raw const t as u64;
     let s = t ^ (std::process::id() as u64).rotate_left(32) ^ a.rotate_left(17) ^ 0x9E37_79B9_7F4A_7C15;
     if s == 0 {
         0x2545_F491_4F6C_DD1D
@@ -158,10 +158,17 @@ impl Store {
     }
 
     /// Atomically writes the state file (tmp file in the same directory + rename).
+    ///
+    /// # Errors
+    /// Returns the I/O error from the atomic write.
     pub fn save(&self, path: &Path) -> io::Result<()> {
         self.save_at(path, epoch_ms())
     }
 
+    /// Like [`Store::save`] with an explicit `now` (epoch ms) for `lastSeen`.
+    ///
+    /// # Errors
+    /// Returns the I/O error from the atomic write.
     pub fn save_at(&self, path: &Path, now: f64) -> io::Result<()> {
         fsutil::atomic_write(path, self.to_json_at(now).as_bytes())
     }

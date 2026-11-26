@@ -983,7 +983,7 @@ mod tests {
         assert_eq!(v.cards[0].timer, "00:02");
         assert_eq!(v.next_wake(752.0), Wake::At(1752.0));
         // only the clock row and the ring: a small fraction of the card
-        let area: i64 = h.damage.rects().iter().map(|r| r.area()).sum();
+        let area: i64 = h.damage.rects().iter().map(foco_base::IRect::area).sum();
         let card = (484.0f32 * S * 80.0 * S) as i64;
         assert!(!h.damage.is_empty() && area < card / 2 + 4000, "area {area} card {card}");
         assert!(h.damage.rects().len() <= 2);
@@ -1139,7 +1139,7 @@ mod tests {
 
     fn draw(h: &Harness, v: &mut FocusSection, now: Ms, name: &str) {
         let mut s = Harness::surface();
-        let bg = foco_base::Fill::Solid(theme::NOTCH);
+        let bg = Fill::Solid(theme::NOTCH);
         s.fill_rrect(Rect::new(0.0, 0.0, 760.0, 760.0), 0.0, &bg);
         h.with_pc(now, Rect::new(0.0, 0.0, 760.0, 760.0), |pc| v.paint(&mut s, pc));
         save(name, &s);

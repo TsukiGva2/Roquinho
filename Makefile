@@ -2,7 +2,7 @@ PREFIX ?= $(HOME)/.local
 BIN    := $(PREFIX)/bin/foco-max
 TARGET := target/release/foco-max
 
-.PHONY: all build install restart deploy stop test clean uninstall
+.PHONY: all build install restart deploy stop test fmt lint check clean uninstall
 
 all: build
 
@@ -26,6 +26,16 @@ stop:
 
 test:
 	cargo test --workspace
+
+fmt:
+	cargo fmt --all
+
+lint:
+	cargo fmt --all --check
+	cargo clippy --workspace --all-targets -- -D warnings
+
+# Same as CI.
+check: lint test
 
 clean:
 	cargo clean

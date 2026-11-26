@@ -32,10 +32,9 @@ fn openbox_to_qt(text: &str) -> Option<String> {
         out.push(
             match m {
                 "W" => "Meta",
-                "A" => "Alt",
+                "A" | "M" => "Alt",
                 "C" => "Ctrl",
                 "S" => "Shift",
-                "M" => "Alt",
                 _ => return None,
             }
             .to_string(),

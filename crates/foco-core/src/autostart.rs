@@ -22,6 +22,9 @@ pub fn enabled() -> bool {
 ///
 /// Unlike the C++ (which returns early when the `.desktop` already exists), enabling is
 /// idempotent and re-syncs both entries, so a stale path (e.g. `/usr/bin/foco-max`) gets fixed.
+///
+/// # Errors
+/// Returns the I/O error from creating or removing the autostart entries.
 pub fn set(enabled: bool, exe: &Path) -> io::Result<()> {
     set_in(&paths::config_dir(), enabled, exe)
 }

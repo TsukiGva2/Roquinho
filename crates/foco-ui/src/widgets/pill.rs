@@ -7,7 +7,7 @@ use foco_base::{theme, Color, Fill, Rect, Surface, TextStyle, Weight};
 /// Pill height.
 pub const PILL_H: f32 = 17.0;
 
-/// Pill text: 10 px DemiBold in `Theme.accentText`; `tabular` for counters (`1/3`).
+/// Pill text: 10 px `DemiBold` in `Theme.accentText`; `tabular` for counters (`1/3`).
 pub fn pill_style(accent_text: Color, tabular: bool) -> TextStyle {
     let st = TextStyle::new(10.0, Weight::DemiBold, accent_text);
     if tabular {

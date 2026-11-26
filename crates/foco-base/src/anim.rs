@@ -1,5 +1,5 @@
 //! Animation primitives: Qt easing curves, tweens, `Anim` (a Behavior-like animated scalar),
-//! `Seq` (SequentialAnimation) and `Spring` (QQuickSpringAnimation port).
+//! `Seq` (`SequentialAnimation`) and `Spring` (`QQuickSpringAnimation` port).
 
 use crate::time::Ms;
 use std::f64::consts::PI;
@@ -205,7 +205,7 @@ enum Seg {
     Set(f32),
 }
 
-/// A SequentialAnimation: a chain of value segments, pauses and jumps, optionally looping.
+/// A `SequentialAnimation`: a chain of value segments, pauses and jumps, optionally looping.
 ///
 /// Build with `Seq::new(initial).to(..).pause(..)`, then `start(now)`. In a loop the first
 /// segment of iteration N>0 starts from the final value of the previous iteration (as Qt does).
@@ -326,7 +326,8 @@ pub struct Spring {
     cur: f64,
     to: f64,
     velocity: f64,
-    spring: f64,
+    /// Qt `SpringAnimation.spring` (stiffness).
+    stiffness: f64,
     damping: f64,
     epsilon: f64,
     mass: f64,
@@ -343,7 +344,7 @@ impl Spring {
             cur: value as f64,
             to: value as f64,
             velocity: 0.0,
-            spring: spring as f64,
+            stiffness: spring as f64,
             damping: damping as f64,
             epsilon: epsilon as f64,
             mass: 1.0,
@@ -406,9 +407,9 @@ impl Spring {
             for _ in 0..count as u64 {
                 let diff = self.to - self.cur;
                 self.velocity = if use_mass {
-                    self.velocity + (self.spring * diff - self.damping * self.velocity) / self.mass
+                    self.velocity + (self.stiffness * diff - self.damping * self.velocity) / self.mass
                 } else {
-                    self.velocity + self.spring * diff - self.damping * self.velocity
+                    self.velocity + self.stiffness * diff - self.damping * self.velocity
                 };
                 self.cur += self.velocity * STEP_MS / 1000.0;
             }
@@ -491,7 +492,7 @@ mod tests {
         assert!((Easing::InOutQuad.apply(0.25) - 0.125).abs() < 1e-6);
         // OutBack overshoots above 1 mid-way
         assert!(Easing::OUT_BACK.apply(0.7) > 1.0);
-        assert!((Easing::OUT_BACK.apply(0.5) - 1.0876975).abs() < 1e-4);
+        assert!((Easing::OUT_BACK.apply(0.5) - 1.087_697_5).abs() < 1e-4);
         assert!(Easing::OUT_ELASTIC.apply(0.2) > 1.0);
         assert_eq!(Easing::Linear.apply(2.0), 1.0);
     }
@@ -589,7 +590,7 @@ mod tests {
         assert_eq!(v1, v2);
         assert_eq!(t1, t2);
         assert!(t1 < 5000.0, "settle time {t1}");
-        let max = v1.iter().cloned().fold(f32::MIN, f32::max);
+        let max = v1.iter().copied().fold(f32::MIN, f32::max);
         assert!(max > 548.0 && max < 548.0 + 60.0, "overshoot max {max}");
         assert_eq!(*v1.last().unwrap(), 548.0);
     }

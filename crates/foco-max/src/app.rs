@@ -30,13 +30,13 @@ pub enum PlatformReq {
         x: i32,
         y: i32,
     },
-    /// XShape input region, window-local device px.
+    /// `XShape` input region, window-local device px.
     SetInputRegion(Vec<IRect>),
     RequestKeyboardFocus,
     ReleaseKeyboardFocus,
     RequestPaste,
     SetCursor(CursorShape),
-    /// Re-query RandR (the debounce elapsed).
+    /// Re-query `RandR` (the debounce elapsed).
     RefreshMonitors,
     Exit,
 }
@@ -397,17 +397,14 @@ impl App {
     }
 
     fn set_alert(&mut self, a: Option<Alert>, now: Ms) {
-        match a {
-            Some(a) => {
-                self.alert_view.set_alert(Some(&a), now);
-                self.alert = Some(a);
+        if let Some(a) = a {
+            self.alert_view.set_alert(Some(&a), now);
+            self.alert = Some(a);
+        } else {
+            if self.alert.take().is_some() {
+                self.alert_view.set_alert(None, now);
             }
-            None => {
-                if self.alert.take().is_some() {
-                    self.alert_view.set_alert(None, now);
-                }
-                self.sched.cancel(T_ALERT);
-            }
+            self.sched.cancel(T_ALERT);
         }
     }
 
@@ -441,10 +438,7 @@ impl App {
                     self.collapsed.pet_react(&n, now);
                     self.expanded_view.pet_react(&n, now);
                 }
-                Effect::Say(_) | Effect::Celebrate { .. } => {
-                    self.rev += 1;
-                }
-                Effect::ModelChanged => {
+                Effect::Say(_) | Effect::Celebrate { .. } | Effect::ModelChanged => {
                     self.rev += 1;
                 }
                 Effect::SettingsChanged => {
@@ -548,9 +542,9 @@ impl App {
         match cmd {
             AppCmd::Toggle => {
                 if self.expanded {
-                    self.collapse()
+                    self.collapse();
                 } else {
-                    self.expand(false, now, epoch)
+                    self.expand(false, now, epoch);
                 }
             }
             AppCmd::Open => self.expand(false, now, epoch),
@@ -630,7 +624,7 @@ impl App {
 
     // ---------------------------------------------------------------- monitors / placement
 
-    /// RandR changed (call once per event; the app debounces by 400 ms).
+    /// `RandR` changed (call once per event; the app debounces by 400 ms).
     pub fn on_screens_changed(&mut self, now: Ms) {
         self.sched.schedule(T_SCREENS, now + SCREEN_DEBOUNCE_MS);
     }
@@ -767,15 +761,15 @@ impl App {
     // ---------------------------------------------------------------- input
 
     /// An event in logical px (main.rs divides device coordinates by `S`).
-    pub fn on_event(&mut self, ev: Event, now: Ms, epoch: f64) {
-        match &ev {
+    pub fn on_event(&mut self, ev: &Event, now: Ms, epoch: f64) {
+        match ev {
             Event::FocusIn => {
                 self.window_focused = true;
                 self.damage_focus_dependent();
             }
             Event::FocusOut => {
                 self.window_focused = false;
-                self.forward_to_expanded(&ev, now, epoch);
+                self.forward_to_expanded(ev, now, epoch);
                 self.damage_focus_dependent();
                 if self.expanded && now - self.expand_stamp > FOCUS_OUT_GRACE_MS {
                     self.collapse();
@@ -785,13 +779,13 @@ impl App {
                 self.pointer = Some(*pos);
                 self.cursor = CursorShape::Arrow;
                 self.update_notch_hover();
-                self.pointer_move(&ev, now, epoch);
+                self.pointer_move(ev, now, epoch);
             }
             Event::PointerLeave => {
                 self.pointer = None;
                 self.notch_hover = false;
                 self.cursor = CursorShape::Arrow;
-                self.pointer_move(&ev, now, epoch);
+                self.pointer_move(ev, now, epoch);
             }
             Event::PointerDown { pos, button, .. } => {
                 self.pointer = Some(*pos);
@@ -800,26 +794,26 @@ impl App {
                     self.request_kb();
                 }
                 if *button == Button::Left {
-                    self.pointer_down(&ev, *pos, now, epoch);
+                    self.pointer_down(ev, *pos, now, epoch);
                 }
             }
-            Event::PointerUp { pos, .. } => self.pointer_up(&ev, *pos, now, epoch),
+            Event::PointerUp { pos, .. } => self.pointer_up(ev, *pos, now, epoch),
             Event::Wheel { .. } => {
                 if self.expanded {
-                    self.forward_to_expanded(&ev, now, epoch);
+                    self.forward_to_expanded(ev, now, epoch);
                     // the content glides under a still pointer (200 ms): keep hover in step
                     self.rehover_until = self.rehover_until.max(now + 350.0);
                 }
             }
             Event::Key(k) => {
-                let handled = if self.expanded { self.forward_to_expanded(&ev, now, epoch) } else { Handled::No };
+                let handled = if self.expanded { self.forward_to_expanded(ev, now, epoch) } else { Handled::No };
                 if handled == Handled::No && k.key == Key::Escape && self.expanded {
                     self.collapse();
                 }
             }
             Event::Paste(_) => {
                 if self.expanded {
-                    self.forward_to_expanded(&ev, now, epoch);
+                    self.forward_to_expanded(ev, now, epoch);
                 }
             }
         }
@@ -1219,7 +1213,7 @@ impl App {
                 self.frame_grid = now;
                 Some(ambient_slot(now + AMBIENT_APP_MS))
             }
-            other => {
+            other @ Wake::At(_) => {
                 let d = other
                     .deadline(now)
                     .map(|t| if t > now + SLOT_MIN_MS { ambient_slot(t) } else { t });
@@ -1350,12 +1344,12 @@ mod tests {
         let mut t = 0.0;
         run(&mut app, &mut t, at);
         let p = Point::new(x, y);
-        app.on_event(Event::PointerMove { pos: p }, t, EPOCH0 + t);
+        app.on_event(&Event::PointerMove { pos: p }, t, EPOCH0 + t);
         run_for(&mut app, &mut t, 32.0);
         let tip_pending = app.tip_pending;
-        app.on_event(Event::PointerDown { pos: p, button: Button::Left, clicks: 1 }, t, EPOCH0 + t);
+        app.on_event(&Event::PointerDown { pos: p, button: Button::Left, clicks: 1 }, t, EPOCH0 + t);
         run_for(&mut app, &mut t, 48.0);
-        app.on_event(Event::PointerUp { pos: p, button: Button::Left }, t, EPOCH0 + t);
+        app.on_event(&Event::PointerUp { pos: p, button: Button::Left }, t, EPOCH0 + t);
         run_for(&mut app, &mut t, 32.0);
         (app.expanded, tip_pending)
     }

@@ -21,7 +21,7 @@ impl Hasher for KeyHasher {
     }
     fn write(&mut self, bytes: &[u8]) {
         for &b in bytes {
-            self.0 = (self.0 ^ b as u64).wrapping_mul(0x100000001b3);
+            self.0 = (self.0 ^ b as u64).wrapping_mul(0x0100_0000_01b3);
         }
     }
     fn write_u64(&mut self, v: u64) {
@@ -190,6 +190,7 @@ impl ttf::OutlineBuilder for Builder {
     }
 }
 
+#[expect(clippy::inline_always, reason = "tiny per-pixel helper of the compositing inner loop; must inline")]
 #[inline(always)]
 fn div255(x: u32) -> u32 {
     (x + 128 + ((x + 128) >> 8)) >> 8
@@ -199,7 +200,10 @@ fn div255(x: u32) -> u32 {
 /// the destination's byte order). `dst` is the whole pixmap (`dw` x `dh`); `(gx, gy)` is the
 /// bitmap's top-left in pixmap coordinates; the result is limited to `clip` and, when given,
 /// scaled by `mask` (one byte per pixmap pixel).
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "destination, coverage bitmap, position, clip, mask and colour are independent inputs of one glyph blit"
+)]
 pub fn blit(
     dst: &mut [u8],
     dw: i32,
@@ -259,7 +263,10 @@ pub fn blit(
 }
 
 /// Fills a solid rectangle (used for strike-through lines) with the same blend as `blit`.
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "same shape as `blit`: destination, rect, coverage callbacks, clip, mask and colour"
+)]
 pub fn blit_rect_cov(
     dst: &mut [u8],
     dw: i32,

@@ -192,7 +192,7 @@ pub fn path_arc(cx: f32, cy: f32, r: f32, start_deg: f32, sweep_deg: f32) -> Opt
 
 /// Appends an elliptical arc (centre parameterisation, angles in radians, `phi` = x-axis
 /// rotation) as cubics of at most 90 degrees each. The pen must already be at the start point.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments, reason = "centre, radii, rotation and angles are independent scalars of one arc")]
 fn arc_cubics(pb: &mut PathBuilder, cx: f32, cy: f32, rx: f32, ry: f32, phi: f32, th1: f32, dth: f32) {
     let n = ((dth.abs() / std::f32::consts::FRAC_PI_2).ceil() as usize).max(1);
     let d = dth / n as f32;
@@ -216,7 +216,10 @@ fn arc_cubics(pb: &mut PathBuilder, cx: f32, cy: f32, rx: f32, ry: f32, phi: f32
 }
 
 /// SVG arc to endpoint (spec F.6.5) appended as cubics.
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "mirrors the SVG endpoint-arc parameter list (start, radii, rotation, flags, end)"
+)]
 fn svg_arc(
     pb: &mut PathBuilder,
     x0: f32,
@@ -525,6 +528,9 @@ impl PixSurface {
         self.pm.fill(c.to_skia());
     }
     /// Writes the surface as a PNG (R/B swapped back to real RGBA).
+    ///
+    /// # Errors
+    /// Returns the encoder or I/O error message when the file cannot be written.
     #[cfg(feature = "png")]
     pub fn save_png(&self, path: impl AsRef<std::path::Path>) -> Result<(), String> {
         let mut copy = self.pm.clone();

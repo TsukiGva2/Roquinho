@@ -355,7 +355,7 @@ impl SettingsPanel {
         }
         // name
         if st.settings.pet_name != self.last_name {
-            self.last_name = st.settings.pet_name.clone();
+            self.last_name.clone_from(&st.settings.pet_name);
             self.name_input.set_text(&self.last_name);
         }
         self.tips_title = format!("Dicas de atalhos do {}", st.settings.pet_name);
@@ -665,7 +665,10 @@ impl View for SettingsPanel {
         let accent_changed = accent != self.accent;
         self.accent = accent;
         // pets: kind selection and hover drive the mood
-        #[allow(clippy::needless_range_loop)]
+        #[expect(
+            clippy::needless_range_loop,
+            reason = "`i` indexes several parallel per-pet arrays and `pet_rect(i)`, not just one slice"
+        )]
         for i in 0..3 {
             let selected = self.pet_kind == PETS[i].0;
             let mood = if selected {
@@ -845,7 +848,10 @@ impl View for SettingsPanel {
             paint_section_label(s, Rect::new(x, top + o.l_pets, w, SECTION_LABEL_H), "MASCOTE", None);
         }
         if vis(top + o.t_pets, PET_TILE_H + 24.0) {
-            #[allow(clippy::needless_range_loop)]
+            #[expect(
+                clippy::needless_range_loop,
+                reason = "`i` indexes several parallel per-pet arrays and `pet_rect(i)`, not just one slice"
+            )]
             for i in 0..3 {
                 let t = &self.pet_tiles[i];
                 let r = t.ma.rect;

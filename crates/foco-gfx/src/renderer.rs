@@ -27,7 +27,7 @@ impl Renderer {
     /// instead of the Qt-default Noto Sans.
     pub fn new() -> Renderer {
         let style = match std::env::var("FOCO_FONT").as_deref() {
-            Ok("inter") | Ok("Inter") => FontStyle::Inter,
+            Ok("inter" | "Inter") => FontStyle::Inter,
             _ => FontStyle::QtDefault,
         };
         Renderer::with_font_style(style)

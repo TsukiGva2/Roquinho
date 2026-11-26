@@ -53,9 +53,9 @@ impl Default for TextEngine {
 }
 
 fn hash(s: &str, px: u32, ls: u32, w: Weight, tab: bool, style: u8) -> usize {
-    let mut h: u64 = 0xcbf29ce484222325;
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for &b in s.as_bytes() {
-        h = (h ^ b as u64).wrapping_mul(0x100000001b3);
+        h = (h ^ b as u64).wrapping_mul(0x0100_0000_01b3);
     }
     for v in [px as u64, ls as u64, w as u64, tab as u64, style as u64] {
         h = (h ^ v).wrapping_mul(0x9E37_79B9_7F4A_7C15);
