@@ -9,7 +9,7 @@
 //!
 //! Damage: appear / float / content changes damage the transformed bubble extent (old u new);
 //! a new typed character damages only the title line, the row stagger only the rows + buttons
-//! block, and button hover / press only that button. The float is quantised to 0.25 px.
+//! block, and button hover / press only that button. The float is quantised to 0.5 px.
 //!
 //! Wakes: `At(t0 + 120)` before the pop, `Frame` while `appear` or the row stagger run,
 //! `At(next character)` while typing, `At(next float level)` otherwise, `Idle` when hidden.
@@ -43,7 +43,9 @@ const ROWS_MS: Ms = 700.0;
 const OUT_MS: Ms = 200.0;
 /// One float half period; the float is `1 - cos(pi t / 1600)` (0 -> 2 -> 0).
 const FLOAT_HALF_MS: f32 = 1600.0;
-const FLOAT_STEP: f32 = 0.25;
+/// Float quantum, logical px. Every step repaints the whole bubble (~0.75 ms), so 0.5 px halves the idle cost of
+/// 0.25 px while staying below one device pixel (S = 25/24) per step.
+const FLOAT_STEP: f32 = 0.5;
 
 /// `(key letter, description, command)` of the four rows.
 const ROWS: [(&str, &str, &str); 4] = [
@@ -743,10 +745,11 @@ mod tests {
             }
             wakes += 1;
         }
-        assert!((16..=40).contains(&wakes), "{wakes} wakes per 3.2 s cycle");
+        // 0.25 px steps gave 17 wakes per cycle (16 level changes + the cycle edge), 0.5 px gives 9; each wake repaints the bubble
+        assert!(wakes <= 9, "{wakes} wakes per 3.2 s cycle");
         let lv: Vec<f32> = (0..64).map(|i| v.float_q(t + i as f64 * 50.0)).collect();
         assert!(lv.iter().all(|y| (0.0..=2.0).contains(y)));
-        assert!(lv.iter().all(|y| ((y / 0.25).round() * 0.25 - y).abs() < 1e-5));
+        assert!(lv.iter().all(|y| ((y / FLOAT_STEP).round() * FLOAT_STEP - y).abs() < 1e-5));
     }
 
     #[test]
