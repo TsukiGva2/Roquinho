@@ -1098,8 +1098,9 @@ impl App {
         // 4) layout in window coordinates
         let clip = g.clip_rect();
         let cwid = clip.w;
-        let col_w = self.collapsed.implicit_width();
-        let col_h = if hovered { 42.0 } else { 38.0 };
+        // the content follows the notch spring, so nothing is cut off while the notch is still growing
+        let col_w = self.collapsed.implicit_width().min(cwid.max(0.0));
+        let col_h = 38.0 + 4.0 * self.collapsed.hover_t(now);
         let col_frame = Rect::new(clip.x + (cwid - col_w) * 0.5, 0.0, col_w, col_h);
         let alert_frame = Rect::new(clip.x + (cwid - 400.0) * 0.5, 0.0, 400.0, 62.0);
         let exp_h = self.expanded_view.implicit_height();
