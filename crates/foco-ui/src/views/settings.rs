@@ -13,7 +13,7 @@
 //! Wake: `Frame` while any fade/ring/knob runs, pets' own `Ambient`/`At` while visible, the name
 //! caret blink while focused, otherwise `Idle`.
 
-use crate::cx::{Cx, CursorShape, FocusId, Handled, Msg, PaintCx};
+use crate::cx::{CursorShape, Cx, FocusId, Handled, Msg, PaintCx};
 use crate::pet::{new_pet, PetLike};
 use crate::view::{Section, View};
 use crate::widgets::{
@@ -384,10 +384,7 @@ impl SettingsPanel {
         let hint_st = txt(11.0, Weight::Regular, theme::TEXT3);
         let hint_w = w - 8.0;
         let mon_text = if env.screens.len() > 1 {
-            format!(
-                "Ou puxe pro próximo monitor de qualquer lugar com {}.",
-                env.keys_for("screen", "M").join(" + ")
-            )
+            format!("Ou puxe pro próximo monitor de qualquer lugar com {}.", env.keys_for("screen", "M").join(" + "))
         } else {
             NO_SCREEN_HINT.to_string()
         };
@@ -682,7 +679,8 @@ impl View for SettingsPanel {
                 self.pet_moods[i] = mood;
                 self.pets[i].set_mood(mood, now);
                 self.pets[i].set_accent(accent);
-                cx.damage.add(self.pet_rect(i).inflate(self.pets[i].overdraw(), self.pets[i].overdraw()));
+                cx.damage
+                    .add(self.pet_rect(i).inflate(self.pets[i].overdraw(), self.pets[i].overdraw()));
             }
             let pr = self.pet_rect(i);
             if self.pets[i].update(now) {
@@ -718,10 +716,12 @@ impl View for SettingsPanel {
             };
             if selected != sw.selected {
                 sw.selected = selected;
-                sw.ring.animate_to(if selected { 26.0 } else { 22.0 }, 140.0, Easing::Linear, now);
+                sw.ring
+                    .animate_to(if selected { 26.0 } else { 22.0 }, 140.0, Easing::Linear, now);
                 cx.damage.add(sw.ma.rect);
             }
-            sw.scale.animate_to(if sw.ma.hovered() { 1.12 } else { 1.0 }, 120.0, Easing::Linear, now);
+            sw.scale
+                .animate_to(if sw.ma.hovered() { 1.12 } else { 1.0 }, 120.0, Easing::Linear, now);
             let cur = (sw.ring.value(now), sw.scale.value(now));
             if (cur.0 - sw.shown.0).abs() >= 0.05 || (cur.1 - sw.shown.1).abs() >= 0.002 {
                 sw.shown = cur;
@@ -908,8 +908,10 @@ impl View for SettingsPanel {
                 t.tile.paint(s, now);
                 let r = t.tile.ma.rect;
                 let c = Point::new(r.x + r.w * 0.5, r.y + 10.0 + 10.0);
-                let (icon, col) =
-                    (if t.key.is_empty() { Icon::Star } else { Icon::Display }, if t.tile.selected { pc.env.accent } else { theme::TEXT2 });
+                let (icon, col) = (
+                    if t.key.is_empty() { Icon::Star } else { Icon::Display },
+                    if t.tile.selected { pc.env.accent } else { theme::TEXT2 },
+                );
                 paint_icon(s, icon, c, 20.0, col, DEFAULT_STROKE);
                 let tw = r.w - 12.0;
                 let ts = if t.tile.selected {
@@ -1014,7 +1016,10 @@ impl View for SettingsPanel {
         }
         if self.pet_tiles.iter().any(|t| t.animating(now))
             || self.screens.iter().any(|t| t.tile.animating(now))
-            || self.swatches.iter().any(|s| s.ring.is_animating(now) || s.scale.is_animating(now))
+            || self
+                .swatches
+                .iter()
+                .any(|s| s.ring.is_animating(now) || s.scale.is_animating(now))
             || self.quit_bg.is_animating(now)
             || self.toggles.iter().any(|t| t.next_wake(now) != Wake::Idle)
         {

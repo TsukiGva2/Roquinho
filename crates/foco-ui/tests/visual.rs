@@ -1,7 +1,9 @@
 //! Writes PNGs of the notch and the widgets to `rs/target/ui-test/` (text is the PixSurface
 //! placeholder box) and checks a few pixels.
 
-use foco_base::{theme, Button, Color, Event, Fill, KeyEvent, Key, Mods, PixSurface, Point, Rect, Surface, Task, TextStyle, Weight};
+use foco_base::{
+    theme, Button, Color, Event, Fill, Key, KeyEvent, Mods, PixSurface, Point, Rect, Surface, Task, TextStyle, Weight,
+};
 use foco_ui::notch::{paint_notch, NotchGeom};
 use foco_ui::testkit::Harness;
 use foco_ui::views::CollapsedView;
@@ -119,7 +121,12 @@ fn widget_sheet() {
         IconButton::new(Icon::Play, 28.0, 15.0),
         IconButton::new(Icon::Pause, 28.0, 15.0),
         IconButton::new(Icon::Trash, 28.0, 15.0),
-        IconButton::new(Icon::Check, 26.0, 14.0).colors(Color::WHITE, Color::WHITE, theme::GREEN, theme::GREEN.lighter(1.15)),
+        IconButton::new(Icon::Check, 26.0, 14.0).colors(
+            Color::WHITE,
+            Color::WHITE,
+            theme::GREEN,
+            theme::GREEN.lighter(1.15),
+        ),
     ];
     for (i, b) in btns.iter_mut().enumerate() {
         h.with_cx(0.0, |cx| b.layout(cx, Rect::new(30.0 + i as f32 * 44.0, 90.0, b.size, b.size)));
@@ -171,7 +178,9 @@ fn widget_sheet() {
         h.with_cx(0.0, |cx| ti.key(cx, &KeyEvent { key: Key::Char(c), mods: Mods::NONE, text: Some(text.clone()) }));
     }
     for _ in 0..4 {
-        h.with_cx(0.0, |cx| ti.key(cx, &KeyEvent { key: Key::Left, mods: Mods { shift: true, ..Mods::NONE }, text: None }));
+        h.with_cx(0.0, |cx| {
+            ti.key(cx, &KeyEvent { key: Key::Left, mods: Mods { shift: true, ..Mods::NONE }, text: None })
+        });
     }
     h.with_pc(0.0, Rect::new(0.0, 0.0, 760.0, 400.0), |pc| {
         ti.paint(&mut s, pc, true, pc.env.accent.with_alpha(0.6), Some(Color::WHITE));

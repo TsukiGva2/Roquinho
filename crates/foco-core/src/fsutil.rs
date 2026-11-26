@@ -20,12 +20,8 @@ pub fn atomic_write(path: &Path, data: &[u8]) -> io::Result<()> {
         }
     }
     let name = target.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let tmp = target.with_file_name(format!(
-        ".{}.{}.{}.tmp",
-        name,
-        std::process::id(),
-        SEQ.fetch_add(1, Ordering::Relaxed)
-    ));
+    let tmp =
+        target.with_file_name(format!(".{}.{}.{}.tmp", name, std::process::id(), SEQ.fetch_add(1, Ordering::Relaxed)));
     let res = (|| {
         let mut f = fs::File::create(&tmp)?;
         f.write_all(data)?;

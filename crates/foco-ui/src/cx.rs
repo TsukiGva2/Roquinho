@@ -116,7 +116,9 @@ pub enum Msg {
     /// Shell command: Open, Collapse, Hide, Show, Quit, Open/CloseSettings, SetAccent,
     /// SetAutostart, Screen(..).
     Cmd(AppCmd),
-    TipAnswer { never: bool },
+    TipAnswer {
+        never: bool,
+    },
     /// A petted quip (goes through the same path as `Effect::Say`).
     Say(String),
     RequestPaste,

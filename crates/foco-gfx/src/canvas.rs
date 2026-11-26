@@ -163,7 +163,9 @@ impl<'a> Canvas<'a> {
         let op = self.cur.opacity;
         let mut paint = Paint { anti_alias: true, ..Paint::default() };
         let stops = |s: &[(f32, Color)]| -> Vec<tiny_skia::GradientStop> {
-            s.iter().map(|(o, c)| tiny_skia::GradientStop::new(*o, c.mul_alpha(op).to_skia())).collect()
+            s.iter()
+                .map(|(o, c)| tiny_skia::GradientStop::new(*o, c.mul_alpha(op).to_skia()))
+                .collect()
         };
         match fill {
             Fill::Solid(c) => paint.set_color(c.mul_alpha(op).to_skia()),
@@ -178,7 +180,14 @@ impl<'a> Canvas<'a> {
             }
             Fill::Radial { center, radius, stops: st } => {
                 let c = tiny_skia::Point::from_xy(center.x, center.y);
-                paint.shader = tiny_skia::RadialGradient::new(c, c, *radius, stops(st), tiny_skia::SpreadMode::Pad, Transform::identity())?;
+                paint.shader = tiny_skia::RadialGradient::new(
+                    c,
+                    c,
+                    *radius,
+                    stops(st),
+                    tiny_skia::SpreadMode::Pad,
+                    Transform::identity(),
+                )?;
             }
         }
         Some(paint)
@@ -233,7 +242,12 @@ impl ttf_parser::OutlineBuilder for PathOut<'_> {
         self.pb.line_to(self.ox + x * self.scale, self.oy - y * self.scale);
     }
     fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
-        self.pb.quad_to(self.ox + x1 * self.scale, self.oy - y1 * self.scale, self.ox + x * self.scale, self.oy - y * self.scale);
+        self.pb.quad_to(
+            self.ox + x1 * self.scale,
+            self.oy - y1 * self.scale,
+            self.ox + x * self.scale,
+            self.oy - y * self.scale,
+        );
     }
     fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
         self.pb.cubic_to(
@@ -380,7 +394,11 @@ impl Surface for Canvas<'_> {
     }
 
     fn stroke_path(&mut self, path: &Path, fill: &Fill, stroke: &tiny_skia::Stroke) {
-        let miter = if matches!(stroke.line_join, tiny_skia::LineJoin::Miter | tiny_skia::LineJoin::MiterClip) { stroke.miter_limit.max(1.0) } else { 1.0 };
+        let miter = if matches!(stroke.line_join, tiny_skia::LineJoin::Miter | tiny_skia::LineJoin::MiterClip) {
+            stroke.miter_limit.max(1.0)
+        } else {
+            1.0
+        };
         let pad = stroke.width * 0.5 * miter * self.scale_factor();
         let b = self.path_bounds(path, pad);
         let Some(m) = self.clip_for(b) else { return };
@@ -446,7 +464,9 @@ impl Surface for Canvas<'_> {
         let mask = m.as_ref().map(|m| m.data());
         let fresh = !self.touched && mask.is_none();
         self.touched = true;
-        self.eng.shadows.composite(self.pm.data_mut(), w, h, clip, mask, &params, premul, fresh);
+        self.eng
+            .shadows
+            .composite(self.pm.data_mut(), w, h, clip, mask, &params, premul, fresh);
     }
 
     fn text(&mut self, s: &str, x: f32, y: f32, style: &TextStyle) -> f32 {
@@ -460,7 +480,13 @@ impl Surface for Canvas<'_> {
             return lay.width;
         }
         let lh = (lay.asc + lay.desc).ceil();
-        let bounds = to_irect_out(map_rect(&t, Rect::new(x - style.px * 0.3, y - style.px * 0.2, lay.width + style.px * 0.6, lh + style.px * 0.4)), 1.0);
+        let bounds = to_irect_out(
+            map_rect(
+                &t,
+                Rect::new(x - style.px * 0.3, y - style.px * 0.2, lay.width + style.px * 0.6, lh + style.px * 0.4),
+            ),
+            1.0,
+        );
         let Some(m) = self.clip_for(bounds) else { return lay.width };
         let color = self.solid_premul(style.color);
         if color[3] == 0 {
@@ -486,7 +512,19 @@ impl Surface for Canvas<'_> {
                 continue;
             }
             let cov = self.eng.glyphs.bitmap(&meta);
-            blit(self.pm.data_mut(), w, h, cov, meta.w as i32, meta.h as i32, ix + meta.left, iy + meta.top, clip, mask, color);
+            blit(
+                self.pm.data_mut(),
+                w,
+                h,
+                cov,
+                meta.w as i32,
+                meta.h as i32,
+                ix + meta.left,
+                iy + meta.top,
+                clip,
+                mask,
+                color,
+            );
         }
         if style.strike {
             if let Some(face) = self.eng.fonts.get(lay.primary) {
@@ -497,9 +535,18 @@ impl Surface for Canvas<'_> {
                 let x1 = base_x + lay.width * t.sx;
                 let y0 = ypos - thick * 0.5;
                 let y1 = ypos + thick * 0.5;
-                let rect = IRect::new(x0.floor() as i32, y0.floor() as i32, (x1.ceil() - x0.floor()) as i32, (y1.ceil() - y0.floor()) as i32);
-                let covx = |px: i32| -> u8 { ((x1.min(px as f32 + 1.0) - x0.max(px as f32)).clamp(0.0, 1.0) * 255.0 + 0.5) as u8 };
-                let covy = |py: i32| -> u8 { ((y1.min(py as f32 + 1.0) - y0.max(py as f32)).clamp(0.0, 1.0) * 255.0 + 0.5) as u8 };
+                let rect = IRect::new(
+                    x0.floor() as i32,
+                    y0.floor() as i32,
+                    (x1.ceil() - x0.floor()) as i32,
+                    (y1.ceil() - y0.floor()) as i32,
+                );
+                let covx = |px: i32| -> u8 {
+                    ((x1.min(px as f32 + 1.0) - x0.max(px as f32)).clamp(0.0, 1.0) * 255.0 + 0.5) as u8
+                };
+                let covy = |py: i32| -> u8 {
+                    ((y1.min(py as f32 + 1.0) - y0.max(py as f32)).clamp(0.0, 1.0) * 255.0 + 0.5) as u8
+                };
                 blit_rect_cov(self.pm.data_mut(), w, h, rect, &covx, &covy, clip, mask, color);
             }
         }

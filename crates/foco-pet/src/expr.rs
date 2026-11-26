@@ -104,13 +104,9 @@ impl Expr {
             Expr::Surprised => Eyes::Wide,
             Expr::Love => Eyes::Heart,
             Expr::Wink => Eyes::Wink,
-            Expr::Idle
-            | Expr::Focus
-            | Expr::Wave
-            | Expr::Ready
-            | Expr::Talk
-            | Expr::Curious
-            | Expr::Other => Eyes::Open,
+            Expr::Idle | Expr::Focus | Expr::Wave | Expr::Ready | Expr::Talk | Expr::Curious | Expr::Other => {
+                Eyes::Open
+            }
         }
     }
 

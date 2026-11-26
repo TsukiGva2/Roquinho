@@ -1,7 +1,7 @@
 //! Single-line text input (ui-design.md §5): caret, selection, Ctrl+Backspace, word jumps,
 //! paste request, horizontal scroll. No IME, no undo, no Ctrl+C/X.
 
-use crate::cx::{Cx, CursorShape, Handled, PaintCx, TextMeasure};
+use crate::cx::{CursorShape, Cx, Handled, PaintCx, TextMeasure};
 use foco_base::{Button, Color, Event, Fill, Key, KeyEvent, Ms, Rect, Surface, TextStyle, Wake};
 
 /// Caret blink half-period.
@@ -11,7 +11,9 @@ const BLINK_MS: Ms = 500.0;
 pub enum InputOutcome {
     None,
     Changed,
-    Submit { ctrl: bool },
+    Submit {
+        ctrl: bool,
+    },
     Escape,
     /// The owner should push `Msg::RequestPaste`.
     Paste,
@@ -364,7 +366,10 @@ impl TextInput {
 
     /// Inserts clipboard text (newlines become spaces).
     pub fn paste(&mut self, cx: &mut Cx, s: &str) {
-        let flat: String = s.chars().map(|c| if c == '\n' || c == '\r' || c == '\t' { ' ' } else { c }).collect();
+        let flat: String = s
+            .chars()
+            .map(|c| if c == '\n' || c == '\r' || c == '\t' { ' ' } else { c })
+            .collect();
         if self.insert(&flat) {
             self.changed(cx);
         }

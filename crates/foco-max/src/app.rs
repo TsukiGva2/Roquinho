@@ -8,18 +8,16 @@ use foco_base::event::{Button, Event, Key};
 use foco_base::model::fmt_short;
 use foco_base::wake::FRAME_MS;
 use foco_base::{
-    day_key, next_midnight_epoch, shortcut_command, Action, Anim, AppCmd, Color, Easing, Effect, IRect, Ms,
-    Point, Rect, Scheduler, ScreenArg, Spring, Surface, TextStyle, TimerKey, Wake,
+    day_key, next_midnight_epoch, shortcut_command, Action, Anim, AppCmd, Color, Easing, Effect, IRect, Ms, Point,
+    Rect, Scheduler, ScreenArg, Spring, Surface, TextStyle, TimerKey, Wake,
 };
 use foco_core::{autostart, rc, Rc, Store};
 use foco_gfx::Renderer;
 use foco_ui::notch::{paint_notch, NotchGeom};
-use foco_ui::views::{
-    Alert, AlertKind, AlertView, CollapsedView, DotView, ExpandedView, TipView,
-};
+use foco_ui::views::{Alert, AlertKind, AlertView, CollapsedView, DotView, ExpandedView, TipView};
 use foco_ui::{
-    CursorShape, Cx, DamageSink, Env, FocusId, Handled, Msg, PaintCx, ScreenInfo, StoreRead, TextMeasure, View, AUTO_ACCENT,
-    S, WIN, WIN_DEV,
+    CursorShape, Cx, DamageSink, Env, FocusId, Handled, Msg, PaintCx, ScreenInfo, StoreRead, TextMeasure, View,
+    AUTO_ACCENT, S, WIN, WIN_DEV,
 };
 use foco_x11::Monitor;
 use std::path::PathBuf;
@@ -28,7 +26,10 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlatformReq {
     /// Window position in root coordinates.
-    Place { x: i32, y: i32 },
+    Place {
+        x: i32,
+        y: i32,
+    },
     /// XShape input region, window-local device px.
     SetInputRegion(Vec<IRect>),
     RequestKeyboardFocus,
@@ -506,7 +507,8 @@ impl App {
     }
 
     fn schedule_tip_day(&mut self, now: Ms, epoch: f64) {
-        self.sched.schedule(T_TIP_DAY, Self::to_mono(next_midnight_epoch(epoch), now, epoch) + 50.0);
+        self.sched
+            .schedule(T_TIP_DAY, Self::to_mono(next_midnight_epoch(epoch), now, epoch) + 50.0);
     }
 
     // ---------------------------------------------------------------- commands
@@ -644,7 +646,9 @@ impl App {
         let by_choice = (!self.env.screen_choice.is_empty())
             .then(|| self.monitors.iter().find(|m| m.name == self.env.screen_choice))
             .flatten();
-        by_choice.or_else(|| self.monitors.iter().find(|m| m.primary)).or_else(|| self.monitors.first())
+        by_choice
+            .or_else(|| self.monitors.iter().find(|m| m.primary))
+            .or_else(|| self.monitors.first())
     }
 
     fn place_window(&mut self, now: Ms, announce: bool) {
@@ -1032,16 +1036,11 @@ impl App {
     fn update_scene(&mut self, now: Ms, epoch: f64) {
         let hidden_mode = self.hidden_mode();
         let expanded_shown = self.expanded && !self.quitting;
-        let collapsed_shown =
-            self.booted && !self.quitting && !self.expanded && self.alert.is_none() && !hidden_mode;
+        let collapsed_shown = self.booted && !self.quitting && !self.expanded && self.alert.is_none() && !hidden_mode;
         let alert_shown = self.alert.is_some() && !self.expanded && !hidden_mode && !self.quitting;
         let dot_shown = hidden_mode && self.booted;
-        let tip_shown = self.tip_pending
-            && self.booted
-            && !self.quitting
-            && !self.expanded
-            && !hidden_mode
-            && self.alert.is_none();
+        let tip_shown =
+            self.tip_pending && self.booted && !self.quitting && !self.expanded && !hidden_mode && self.alert.is_none();
         self.update_notch_hover();
         let hovered = self.hovered();
 
@@ -1169,8 +1168,10 @@ impl App {
             let r = self.tip_rect;
             rects.push(Rect::new(r.x - 4.0, r.y - 2.0, r.w + 8.0, r.h + 8.0));
         }
-        let dev: Vec<IRect> =
-            rects.iter().map(|r| Rect::new(r.x * S, r.y * S, r.w * S, r.h * S).round_out()).collect();
+        let dev: Vec<IRect> = rects
+            .iter()
+            .map(|r| Rect::new(r.x * S, r.y * S, r.w * S, r.h * S).round_out())
+            .collect();
         self.reqs.push(PlatformReq::SetInputRegion(dev));
         self.region = Some(key);
     }
@@ -1219,7 +1220,9 @@ impl App {
                 Some(ambient_slot(now + AMBIENT_APP_MS))
             }
             other => {
-                let d = other.deadline(now).map(|t| if t > now + SLOT_MIN_MS { ambient_slot(t) } else { t });
+                let d = other
+                    .deadline(now)
+                    .map(|t| if t > now + SLOT_MIN_MS { ambient_slot(t) } else { t });
                 self.frame_grid = now;
                 d
             }
@@ -1231,22 +1234,26 @@ impl App {
     /// Paints `rects` (device px) into `target` (BGRA, `WIN_DEV` square).
     pub fn render(&mut self, target: &mut [u8], rects: &[IRect], now: Ms, epoch: f64) {
         let App {
-            gfx, store, env, focus, window_focused, geom, shadow_op, collapsed, alert_view, expanded_view, dot, tip, ..
+            gfx,
+            store,
+            env,
+            focus,
+            window_focused,
+            geom,
+            shadow_op,
+            collapsed,
+            alert_view,
+            expanded_view,
+            dot,
+            tip,
+            ..
         } = self;
         for r in rects {
             let clip = Rect::new(r.x as f32 / S, r.y as f32 / S, r.w as f32 / S, r.h as f32 / S).inflate(1.0, 1.0);
             let st: &dyn StoreRead = &*store;
             gfx.render(target, WIN_DEV as u32, WIN_DEV as u32, &[*r], &mut |c| {
                 c.scale(S, S);
-                let pc = PaintCx {
-                    now,
-                    epoch,
-                    clip,
-                    env,
-                    store: st,
-                    focus,
-                    window_focused: *window_focused,
-                };
+                let pc = PaintCx { now, epoch, clip, env, store: st, focus, window_focused: *window_focused };
                 paint_notch(c, geom, *shadow_op);
                 if geom.visible() {
                     c.save();
@@ -1268,7 +1275,8 @@ impl App {
 
     /// `--snapshot alert`: shows a sample alert (bypasses the boot delay checks).
     pub fn debug_alert(&mut self, now: Ms) {
-        let a = Alert { kind: AlertKind::Done, title: "Destruída!".into(), sub: "Escrever relatório  ·  12m".into() };
+        let a =
+            Alert { kind: AlertKind::Done, title: "Destruída!".into(), sub: "Escrever relatório  ·  12m".into() };
         self.show_alert(a, 60_000.0, now);
     }
 

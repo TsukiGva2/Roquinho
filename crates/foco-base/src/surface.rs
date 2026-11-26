@@ -55,8 +55,16 @@ impl TextStyle {
 pub enum Fill {
     Solid(Color),
     /// Linear gradient from `p0` to `p1`; stops are `(offset 0..1, colour)`.
-    Linear { p0: Point, p1: Point, stops: Vec<(f32, Color)> },
-    Radial { center: Point, radius: f32, stops: Vec<(f32, Color)> },
+    Linear {
+        p0: Point,
+        p1: Point,
+        stops: Vec<(f32, Color)>,
+    },
+    Radial {
+        center: Point,
+        radius: f32,
+        stops: Vec<(f32, Color)>,
+    },
 }
 
 impl From<Color> for Fill {
@@ -209,7 +217,18 @@ fn arc_cubics(pb: &mut PathBuilder, cx: f32, cy: f32, rx: f32, ry: f32, phi: f32
 
 /// SVG arc to endpoint (spec F.6.5) appended as cubics.
 #[allow(clippy::too_many_arguments)]
-fn svg_arc(pb: &mut PathBuilder, x0: f32, y0: f32, mut rx: f32, mut ry: f32, rot_deg: f32, large: bool, sweep: bool, x: f32, y: f32) {
+fn svg_arc(
+    pb: &mut PathBuilder,
+    x0: f32,
+    y0: f32,
+    mut rx: f32,
+    mut ry: f32,
+    rot_deg: f32,
+    large: bool,
+    sweep: bool,
+    x: f32,
+    y: f32,
+) {
     if (x0 == x && y0 == y) || rx == 0.0 || ry == 0.0 {
         if x0 != x || y0 != y {
             pb.line_to(x, y);
@@ -523,7 +542,9 @@ impl PixSurface {
         let op = self.cur.opacity;
         let mut paint = tiny_skia::Paint { anti_alias: true, ..tiny_skia::Paint::default() };
         let stops = |s: &[(f32, Color)]| -> Vec<tiny_skia::GradientStop> {
-            s.iter().map(|(o, c)| tiny_skia::GradientStop::new(*o, c.mul_alpha(op).to_skia())).collect()
+            s.iter()
+                .map(|(o, c)| tiny_skia::GradientStop::new(*o, c.mul_alpha(op).to_skia()))
+                .collect()
         };
         match fill {
             Fill::Solid(c) => paint.set_color(c.mul_alpha(op).to_skia()),
@@ -550,7 +571,6 @@ impl PixSurface {
         }
         Some(paint)
     }
-
 }
 
 impl Surface for PixSurface {
@@ -601,12 +621,14 @@ impl Surface for PixSurface {
     }
     fn fill_path(&mut self, path: &Path, fill: &Fill) {
         if let Some(p) = self.paint(fill) {
-            self.pm.fill_path(path, &p, tiny_skia::FillRule::Winding, self.cur.transform, self.cur.clip.as_deref());
+            self.pm
+                .fill_path(path, &p, tiny_skia::FillRule::Winding, self.cur.transform, self.cur.clip.as_deref());
         }
     }
     fn stroke_path(&mut self, path: &Path, fill: &Fill, stroke: &tiny_skia::Stroke) {
         if let Some(p) = self.paint(fill) {
-            self.pm.stroke_path(path, &p, stroke, self.cur.transform, self.cur.clip.as_deref());
+            self.pm
+                .stroke_path(path, &p, stroke, self.cur.transform, self.cur.clip.as_deref());
         }
     }
     fn shadow(&mut self, r: Rect, radius: f32, blur: f32, spread: f32, offset: Point, color: Color) {
@@ -625,7 +647,9 @@ impl Surface for PixSurface {
     }
     fn text(&mut self, s: &str, x: f32, y: f32, style: &TextStyle) -> f32 {
         let w = self.measure(s, style);
-        if let (Some(r), Some(p)) = (skia_rect(Rect::new(x, y, w.max(0.01), style.px)), self.paint(&Fill::Solid(style.color))) {
+        if let (Some(r), Some(p)) =
+            (skia_rect(Rect::new(x, y, w.max(0.01), style.px)), self.paint(&Fill::Solid(style.color)))
+        {
             self.pm.fill_rect(r, &p, self.cur.transform, self.cur.clip.as_deref());
         }
         w

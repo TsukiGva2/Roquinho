@@ -8,8 +8,7 @@
 use crate::fsutil;
 use foco_base::model::{make_uid, CELEBRATE_MS, MAX_DONE, TIRED_MS};
 use foco_base::{
-    epoch_ms, next_midnight_epoch, pet_event, start_of_day_epoch, Action, Effect, Mood, Settings,
-    StateFile, Task,
+    epoch_ms, next_midnight_epoch, pet_event, start_of_day_epoch, Action, Effect, Mood, Settings, StateFile, Task,
 };
 use std::fs;
 use std::io;
@@ -19,13 +18,16 @@ use std::path::Path;
 pub const QUIP_MS: f64 = 2600.0;
 
 pub const QUIPS_FOCUS_NEW: [&str; 3] = ["Hey ho, let's go!", "1, 2, 3, 4! Foco!", "Pogo mental iniciado."];
-pub const QUIPS_QUEUED: [&str; 3] = ["Pra fila do gargarejo.", "Anotado. Procrastine com estilo.", "Guardei. Ela não foge, infelizmente."];
-pub const QUIPS_FOCUS_FROM_QUEUE: [&str; 3] = ["Hey ho, let's go!", "Próxima faixa do lado B!", "Sem ensaio, só barulho!"];
+pub const QUIPS_QUEUED: [&str; 3] =
+    ["Pra fila do gargarejo.", "Anotado. Procrastine com estilo.", "Guardei. Ela não foge, infelizmente."];
+pub const QUIPS_FOCUS_FROM_QUEUE: [&str; 3] =
+    ["Hey ho, let's go!", "Próxima faixa do lado B!", "Sem ensaio, só barulho!"];
 pub const QUIP_RESUME: &str = "O intervalo acabou. Volta pro palco.";
 pub const QUIPS_COMPLETE: [&str; 4] =
     ["Mais uma pro setlist!", "Anarchy in the to-do!", "Uma a menos. No future pra ela.", "Destruiu. Pogo!"];
 /// `ExpandedView.qml` `onPetted` for the cat.
-pub const QUIPS_PETTED_CAT: [&str; 3] = ["Ronrom… mas sou punk, hein.", "Cuidado com o moicano!", "Isso não sai daqui."];
+pub const QUIPS_PETTED_CAT: [&str; 3] =
+    ["Ronrom… mas sou punk, hein.", "Cuidado com o moicano!", "Isso não sai daqui."];
 /// `ExpandedView.qml` `onPetted` for the other mascots.
 pub const QUIPS_PETTED_OTHER: [&str; 3] = ["Ei, sem stage diving!", "Cuidado com o visual!", "Tá, tá… mais um pouco."];
 /// `Main.qml answerTip(never)`.
@@ -90,7 +92,9 @@ impl Store {
     }
 
     pub fn load_at(path: &Path, now: f64) -> Store {
-        let raw = fs::read(path).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default();
+        let raw = fs::read(path)
+            .map(|b| String::from_utf8_lossy(&b).into_owned())
+            .unwrap_or_default();
         let (s, corrupt) = Store::parse_at(&raw, now);
         if corrupt {
             // keep the unreadable file instead of silently overwriting it on the next save
@@ -354,8 +358,7 @@ impl Store {
 
     /// The mascot was petted (`ExpandedView.qml onPetted`): a quip that depends on the kind.
     pub fn petted(&mut self, now: f64) -> Vec<Effect> {
-        let list: &[&str] =
-            if self.st.settings.pet_kind == "cat" { &QUIPS_PETTED_CAT } else { &QUIPS_PETTED_OTHER };
+        let list: &[&str] = if self.st.settings.pet_kind == "cat" { &QUIPS_PETTED_CAT } else { &QUIPS_PETTED_OTHER };
         self.say_one_of(list, now)
     }
 
@@ -464,9 +467,7 @@ impl Store {
                 }
                 self.touch(&mut fx);
                 fx.push(Effect::Added { title: title.to_string(), to_focus: go_focus });
-                fx.push(Effect::PetEvent(
-                    if go_focus { pet_event::READY } else { pet_event::SURPRISED }.to_string(),
-                ));
+                fx.push(Effect::PetEvent(if go_focus { pet_event::READY } else { pet_event::SURPRISED }.to_string()));
                 if go_focus {
                     self.say_one_of_fx(&QUIPS_FOCUS_NEW, now, &mut fx);
                 } else {
@@ -580,11 +581,8 @@ impl Store {
                 if self.celebrate_until != 0.0 && now >= self.celebrate_until {
                     self.celebrate_until = 0.0;
                 }
-                let stamp = Stamp {
-                    mood: self.mood(now),
-                    sod: start_of_day_epoch(now) as i64,
-                    quip: !self.quip.is_empty(),
-                };
+                let stamp =
+                    Stamp { mood: self.mood(now), sod: start_of_day_epoch(now) as i64, quip: !self.quip.is_empty() };
                 if self.stamp != Some(stamp) {
                     self.stamp = Some(stamp);
                     self.revision += 1;

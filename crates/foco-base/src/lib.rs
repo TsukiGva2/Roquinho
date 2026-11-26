@@ -26,8 +26,8 @@ pub use geom::{IRect, Point, Rect, Size};
 pub use model::{Mood, PetKind, Settings, StateFile, Task};
 pub use sched::{Scheduler, TimerKey};
 pub use surface::{
-    path_arc, path_circle, path_ellipse, path_from_svg, path_rect, path_rrect, Fill, PixSurface, Surface,
-    TextStyle, Weight,
+    path_arc, path_circle, path_ellipse, path_from_svg, path_rect, path_rrect, Fill, PixSurface, Surface, TextStyle,
+    Weight,
 };
 pub use time::{day_key, epoch_ms, mono_ms, next_midnight_epoch, start_of_day_epoch, Ms};
 pub use wake::Wake;

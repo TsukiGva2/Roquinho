@@ -24,9 +24,8 @@ use x11rb::protocol::shape::{self, ConnectionExt as _};
 use x11rb::protocol::shm::{self, ConnectionExt as _};
 use x11rb::protocol::xkb::{self, ConnectionExt as _};
 use x11rb::protocol::xproto::{
-    self, AtomEnum, ClientMessageEvent, ColormapAlloc, ConfigureWindowAux, ConnectionExt as _,
-    CreateGCAux, CreateWindowAux, EventMask, GrabMode, InputFocus, NotifyDetail, NotifyMode,
-    PropMode, Window, WindowClass,
+    self, AtomEnum, ClientMessageEvent, ColormapAlloc, ConfigureWindowAux, ConnectionExt as _, CreateGCAux,
+    CreateWindowAux, EventMask, GrabMode, InputFocus, NotifyDetail, NotifyMode, PropMode, Window, WindowClass,
 };
 use x11rb::protocol::Event;
 use x11rb::rust_connection::RustConnection;
@@ -213,8 +212,7 @@ impl X11 {
 
         // Everything below is pipelined: requests first, replies afterwards.
         for ext in ["SHAPE", "MIT-SHM", "RANDR", "XKEYBOARD"] {
-            conn.prefetch_extension_information(ext)
-                .map_err(s("prefetch"))?;
+            conn.prefetch_extension_information(ext).map_err(s("prefetch"))?;
         }
         let cookies: Vec<_> = ATOM_NAMES
             .iter()
@@ -368,11 +366,11 @@ impl X11 {
         if self.cursors[i] == 0 {
             // (glyph, mask glyph) pairs of the standard "cursor" font
             let (src, mask) = match cursor {
-                Cursor::Arrow => (68, 69),     // left_ptr
-                Cursor::Hand => (60, 61),      // hand2
-                Cursor::Grab => (58, 59),      // hand1
-                Cursor::Grabbing => (52, 53),  // fleur
-                Cursor::IBeam => (152, 153),   // xterm
+                Cursor::Arrow => (68, 69),    // left_ptr
+                Cursor::Hand => (60, 61),     // hand2
+                Cursor::Grab => (58, 59),     // hand1
+                Cursor::Grabbing => (52, 53), // fleur
+                Cursor::IBeam => (152, 153),  // xterm
             };
             let made = (|| {
                 let font = self.conn.generate_id().ok()?;
@@ -430,26 +428,13 @@ impl X11 {
         if !self.has_randr {
             return None;
         }
-        let reply = self
-            .conn
-            .randr_get_monitors(self.root, true)
-            .ok()?
-            .reply()
-            .ok()?;
+        let reply = self.conn.randr_get_monitors(self.root, true).ok()?.reply().ok()?;
         let mut pending = Vec::new();
         for m in &reply.monitors {
             let name = self.conn.get_atom_name(m.name).ok();
             let edid = m.outputs.first().and_then(|&o| {
                 self.conn
-                    .randr_get_output_property(
-                        o,
-                        self.atoms.edid,
-                        AtomEnum::NONE,
-                        0,
-                        64,
-                        false,
-                        false,
-                    )
+                    .randr_get_output_property(o, self.atoms.edid, AtomEnum::NONE, 0, 64, false, false)
                     .ok()
             });
             pending.push((m, name, edid));
@@ -460,9 +445,7 @@ impl X11 {
                 .and_then(|c| c.reply().ok())
                 .map(|r| String::from_utf8_lossy(&r.name).into_owned())
                 .unwrap_or_default();
-            let model = edid
-                .and_then(|c| c.reply().ok())
-                .and_then(|r| edid::monitor_name(&r.data));
+            let model = edid.and_then(|c| c.reply().ok()).and_then(|r| edid::monitor_name(&r.data));
             out.push(Monitor {
                 label: edid::label_for(&name, model.as_deref()),
                 name,
@@ -518,92 +501,45 @@ impl X11 {
             0,
             WindowClass::INPUT_OUTPUT,
             visual,
-            &CreateWindowAux::new()
-                .border_pixel(0)
-                .colormap(cmap)
-                .event_mask(
-                    EventMask::EXPOSURE
-                        | EventMask::KEY_PRESS
-                        | EventMask::BUTTON_PRESS
-                        | EventMask::BUTTON_RELEASE
-                        | EventMask::POINTER_MOTION
-                        | EventMask::LEAVE_WINDOW
-                        | EventMask::FOCUS_CHANGE,
-                ),
+            &CreateWindowAux::new().border_pixel(0).colormap(cmap).event_mask(
+                EventMask::EXPOSURE
+                    | EventMask::KEY_PRESS
+                    | EventMask::BUTTON_PRESS
+                    | EventMask::BUTTON_RELEASE
+                    | EventMask::POINTER_MOTION
+                    | EventMask::LEAVE_WINDOW
+                    | EventMask::FOCUS_CHANGE,
+            ),
         )
         .map_err(s("create_window"))?;
 
         // Dock: no border, no placement by the WM, out of Alt+Tab/taskbar, all desktops, above.
-        c.change_property32(
-            PropMode::REPLACE,
-            win,
-            a.wm_type,
-            AtomEnum::ATOM,
-            &[a.wm_type_dock],
-        )
-        .map_err(s("prop"))?;
+        c.change_property32(PropMode::REPLACE, win, a.wm_type, AtomEnum::ATOM, &[a.wm_type_dock])
+            .map_err(s("prop"))?;
         c.change_property32(
             PropMode::REPLACE,
             win,
             a.wm_state,
             AtomEnum::ATOM,
-            &[
-                a.state_above,
-                a.state_sticky,
-                a.state_skip_taskbar,
-                a.state_skip_pager,
-            ],
+            &[a.state_above, a.state_sticky, a.state_skip_taskbar, a.state_skip_pager],
         )
         .map_err(s("prop"))?;
-        c.change_property32(
-            PropMode::REPLACE,
-            win,
-            a.wm_desktop,
-            AtomEnum::CARDINAL,
-            &[0xFFFF_FFFF],
-        )
-        .map_err(s("prop"))?;
-        c.change_property8(
-            PropMode::REPLACE,
-            win,
-            AtomEnum::WM_CLASS,
-            AtomEnum::STRING,
-            b"foco-max\0foco-max\0",
-        )
-        .map_err(s("prop"))?;
-        c.change_property8(
-            PropMode::REPLACE,
-            win,
-            AtomEnum::WM_NAME,
-            AtomEnum::STRING,
-            b"Foquinho",
-        )
-        .map_err(s("prop"))?;
+        c.change_property32(PropMode::REPLACE, win, a.wm_desktop, AtomEnum::CARDINAL, &[0xFFFF_FFFF])
+            .map_err(s("prop"))?;
+        c.change_property8(PropMode::REPLACE, win, AtomEnum::WM_CLASS, AtomEnum::STRING, b"foco-max\0foco-max\0")
+            .map_err(s("prop"))?;
+        c.change_property8(PropMode::REPLACE, win, AtomEnum::WM_NAME, AtomEnum::STRING, b"Foquinho")
+            .map_err(s("prop"))?;
         c.change_property8(PropMode::REPLACE, win, a.wm_name, a.utf8, b"Foquinho")
             .map_err(s("prop"))?;
-        c.change_property32(
-            PropMode::REPLACE,
-            win,
-            a.wm_pid,
-            AtomEnum::CARDINAL,
-            &[std::process::id()],
-        )
-        .map_err(s("prop"))?;
+        c.change_property32(PropMode::REPLACE, win, a.wm_pid, AtomEnum::CARDINAL, &[std::process::id()])
+            .map_err(s("prop"))?;
         // User time 0: do not take focus when mapped.
-        c.change_property32(
-            PropMode::REPLACE,
-            win,
-            a.user_time,
-            AtomEnum::CARDINAL,
-            &[0],
-        )
-        .map_err(s("prop"))?;
-        WmHints {
-            input: Some(false),
-            ..Default::default()
-        }
-        .set(c, win)
-        .map_err(s("hints"))?;
+        c.change_property32(PropMode::REPLACE, win, a.user_time, AtomEnum::CARDINAL, &[0])
+            .map_err(s("prop"))?;
+        WmHints { input: Some(false), ..Default::default() }
+            .set(c, win)
+            .map_err(s("hints"))?;
         let hints = WmSizeHints {
             position: Some((WmSizeHintsSpecification::UserSpecified, 0, 0)),
             min_size: Some((w as i32, h as i32)),
@@ -614,24 +550,12 @@ impl X11 {
 
         if self.has_shape {
             // Start fully click-through.
-            c.shape_rectangles(
-                shape::SO::SET,
-                shape::SK::INPUT,
-                xproto::ClipOrdering::UNSORTED,
-                win,
-                0,
-                0,
-                &[],
-            )
-            .map_err(s("shape"))?;
+            c.shape_rectangles(shape::SO::SET, shape::SK::INPUT, xproto::ClipOrdering::UNSORTED, win, 0, 0, &[])
+                .map_err(s("shape"))?;
         }
 
         // Shared-memory buffer.
-        let shm_ver = c
-            .shm_query_version()
-            .map_err(s("shm"))?
-            .reply()
-            .map_err(s("shm"))?;
+        let shm_ver = c.shm_query_version().map_err(s("shm"))?.reply().map_err(s("shm"))?;
         if (shm_ver.major_version, shm_ver.minor_version) < (1, 2) {
             return Err("MIT-SHM >= 1.2 (fd passing) required".into());
         }
@@ -665,9 +589,7 @@ impl X11 {
             ..Default::default()
         };
         let _ = hints.set_normal_hints(&self.conn, self.win);
-        let _ = self
-            .conn
-            .configure_window(self.win, &ConfigureWindowAux::new().x(x).y(y));
+        let _ = self.conn.configure_window(self.win, &ConfigureWindowAux::new().x(x).y(y));
     }
 
     pub fn map(&mut self) {
@@ -693,12 +615,7 @@ impl X11 {
         let xr: Vec<xproto::Rectangle> = rects
             .iter()
             .filter(|r| !r.is_empty())
-            .map(|r| xproto::Rectangle {
-                x: r.x as i16,
-                y: r.y as i16,
-                width: r.w as u16,
-                height: r.h as u16,
-            })
+            .map(|r| xproto::Rectangle { x: r.x as i16, y: r.y as i16, width: r.w as u16, height: r.h as u16 })
             .collect();
         let _ = self.conn.shape_rectangles(
             shape::SO::SET,
@@ -809,11 +726,7 @@ impl X11 {
     fn do_grab(&mut self) -> Vec<(String, Vec<String>)> {
         self.ungrab_shortcuts();
         if !self.ensure_kb() {
-            return self
-                .defs
-                .iter()
-                .map(|(id, _)| (id.clone(), Vec::new()))
-                .collect();
+            return self.defs.iter().map(|(id, _)| (id.clone(), Vec::new())).collect();
         }
         let Some(kb) = self.kb.as_ref() else {
             return Vec::new();
@@ -821,8 +734,7 @@ impl X11 {
         let conn = &self.conn;
         let root = self.root;
         let mut result: Vec<(String, Vec<String>)> = Vec::with_capacity(self.defs.len());
-        let mut inflight: Vec<(usize, Vec<x11rb::cookie::VoidCookie<'_, RustConnection>>)> =
-            Vec::new();
+        let mut inflight: Vec<(usize, Vec<x11rb::cookie::VoidCookie<'_, RustConnection>>)> = Vec::new();
         let mut new_grabs: Vec<Grab> = Vec::new();
 
         // Send every grab first...
@@ -839,22 +751,13 @@ impl X11 {
             let mut cookies = Vec::new();
             for &code in &codes {
                 for lock in LOCK_COMBOS {
-                    if let Ok(ck) = conn.grab_key(
-                        false,
-                        root,
-                        (sq.mods | lock).into(),
-                        code,
-                        GrabMode::ASYNC,
-                        GrabMode::ASYNC,
-                    ) {
+                    if let Ok(ck) =
+                        conn.grab_key(false, root, (sq.mods | lock).into(), code, GrabMode::ASYNC, GrabMode::ASYNC)
+                    {
                         cookies.push(ck);
                     }
                 }
-                new_grabs.push(Grab {
-                    code,
-                    mods: sq.mods,
-                    id: id.clone(),
-                });
+                new_grabs.push(Grab { code, mods: sq.mods, id: id.clone() });
             }
             inflight.push((result.len(), cookies));
             result.push((id.clone(), sq.display));
@@ -896,9 +799,7 @@ impl X11 {
     pub fn ungrab_shortcuts(&mut self) {
         for g in &self.grabs {
             for lock in LOCK_COMBOS {
-                let _ = self
-                    .conn
-                    .ungrab_key(g.code, self.root, (g.mods | lock).into());
+                let _ = self.conn.ungrab_key(g.code, self.root, (g.mods | lock).into());
             }
         }
         self.grabs.clear();
@@ -910,14 +811,7 @@ impl X11 {
 
     fn active_window(&self) -> Window {
         self.conn
-            .get_property(
-                false,
-                self.root,
-                self.atoms.active_window,
-                AtomEnum::WINDOW,
-                0,
-                1,
-            )
+            .get_property(false, self.root, self.atoms.active_window, AtomEnum::WINDOW, 0, 1)
             .ok()
             .and_then(|c| c.reply().ok())
             .and_then(|r| r.value32().and_then(|mut it| it.next()))
@@ -927,12 +821,7 @@ impl X11 {
     /// Sends `_NET_ACTIVE_WINDOW` as if a pager asked (source 2): Openbox's focus-stealing
     /// prevention lets that through.
     fn send_active(&self, target: Window) {
-        let ev = ClientMessageEvent::new(
-            32,
-            target,
-            self.atoms.active_window,
-            [2, self.last_time, 0, 0, 0],
-        );
+        let ev = ClientMessageEvent::new(32, target, self.atoms.active_window, [2, self.last_time, 0, 0, 0]);
         let _ = self.conn.send_event(
             false,
             self.root,
@@ -984,11 +873,7 @@ impl X11 {
     }
 
     fn set_wm_input(&self, input: bool) {
-        let _ = WmHints {
-            input: Some(input),
-            ..Default::default()
-        }
-        .set(&self.conn, self.win);
+        let _ = WmHints { input: Some(input), ..Default::default() }.set(&self.conn, self.win);
     }
 
     /// Port of `grabKeyboard()`: with `exclusive` asks for keyboard focus (remembering the
@@ -1011,9 +896,7 @@ impl X11 {
         self.send_active(self.win);
         // Fallback for a WM that refuses focus on docks (the Qt build did this after 150 ms;
         // doing it right away costs nothing and avoids a timer).
-        let _ = self
-            .conn
-            .set_input_focus(InputFocus::PARENT, self.win, CURRENT_TIME);
+        let _ = self.conn.set_input_focus(InputFocus::PARENT, self.win, CURRENT_TIME);
         let _ = self.conn.flush();
     }
 
@@ -1110,14 +993,7 @@ impl X11 {
 
     fn read_rule_names(&self) -> RuleNames {
         self.conn
-            .get_property(
-                false,
-                self.root,
-                self.atoms.xkb_rules,
-                AtomEnum::STRING,
-                0,
-                64,
-            )
+            .get_property(false, self.root, self.atoms.xkb_rules, AtomEnum::STRING, 0, 64)
             .ok()
             .and_then(|c| c.reply().ok())
             .filter(|r| !r.value.is_empty())
@@ -1183,27 +1059,11 @@ impl X11 {
                                 }
                                 _ => 1,
                             };
-                            self.last_click = Some(Click {
-                                time: b.time,
-                                x,
-                                y,
-                                button,
-                                clicks,
-                            });
-                            out.push(XEvent::Input(InEvent::PointerDown {
-                                pos,
-                                button,
-                                clicks,
-                            }));
+                            self.last_click = Some(Click { time: b.time, x, y, button, clicks });
+                            out.push(XEvent::Input(InEvent::PointerDown { pos, button, clicks }));
                         }
-                        4 => out.push(XEvent::Input(InEvent::Wheel {
-                            pos,
-                            dy: -WHEEL_STEP_PX,
-                        })),
-                        5 => out.push(XEvent::Input(InEvent::Wheel {
-                            pos,
-                            dy: WHEEL_STEP_PX,
-                        })),
+                        4 => out.push(XEvent::Input(InEvent::Wheel { pos, dy: -WHEEL_STEP_PX })),
+                        5 => out.push(XEvent::Input(InEvent::Wheel { pos, dy: WHEEL_STEP_PX })),
                         _ => {}
                     }
                 }
@@ -1230,10 +1090,7 @@ impl X11 {
                     if k.event == self.root {
                         // A grabbed global shortcut.
                         let mods = u16::from(k.state) & SHORTCUT_MODS;
-                        let hit = self
-                            .grabs
-                            .iter()
-                            .find(|g| g.code == k.detail && g.mods == mods);
+                        let hit = self.grabs.iter().find(|g| g.code == k.detail && g.mods == mods);
                         if let Some(g) = hit {
                             if !self.down.contains(&k.detail) {
                                 // Holding the key does not repeat the command.
@@ -1259,8 +1116,7 @@ impl X11 {
                             let idx = usize::from(shift && per > 1);
                             r.keysyms.get(idx).copied()
                         };
-                        if let Some(ke) = kb.key_press(k.detail, u16::from(k.state), &mut core_sym)
-                        {
+                        if let Some(ke) = kb.key_press(k.detail, u16::from(k.state), &mut core_sym) {
                             flush_motion(&mut out, &mut motion);
                             out.push(XEvent::Input(InEvent::Key(ke)));
                         }
@@ -1272,20 +1128,14 @@ impl X11 {
                     }
                 }
                 Event::FocusIn(f) => {
-                    if f.detail != NotifyDetail::POINTER
-                        && f.mode != NotifyMode::GRAB
-                        && f.mode != NotifyMode::UNGRAB
-                    {
+                    if f.detail != NotifyDetail::POINTER && f.mode != NotifyMode::GRAB && f.mode != NotifyMode::UNGRAB {
                         self.has_focus = true;
                         flush_motion(&mut out, &mut motion);
                         out.push(XEvent::FocusIn);
                     }
                 }
                 Event::FocusOut(f) => {
-                    if f.detail != NotifyDetail::POINTER
-                        && f.mode != NotifyMode::GRAB
-                        && f.mode != NotifyMode::UNGRAB
-                    {
+                    if f.detail != NotifyDetail::POINTER && f.mode != NotifyMode::GRAB && f.mode != NotifyMode::UNGRAB {
                         self.has_focus = false;
                         if let Some(kb) = self.kb.as_mut() {
                             kb.reset_compose();
@@ -1311,12 +1161,8 @@ impl X11 {
                         self.keyboard_dirty = true;
                     }
                 }
-                Event::XkbNewKeyboardNotify(_) | Event::XkbMapNotify(_) => {
-                    self.keyboard_dirty = true
-                }
-                Event::ConfigureNotify(c)
-                    if c.event == self.root && !c.override_redirect && c.above_sibling != 0 =>
-                {
+                Event::XkbNewKeyboardNotify(_) | Event::XkbMapNotify(_) => self.keyboard_dirty = true,
+                Event::ConfigureNotify(c) if c.event == self.root && !c.override_redirect && c.above_sibling != 0 => {
                     self.keep_on_top(c.window, c.above_sibling)
                 }
                 Event::RandrScreenChangeNotify(_) | Event::RandrNotify(_) => screens = true,

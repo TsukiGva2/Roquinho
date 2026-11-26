@@ -402,7 +402,10 @@ mod tests {
 
     #[test]
     fn lenient_loading() {
-        let st = StateFile::from_json(r#"{"focus":[{"tid":7,"title":"t","accMs":"12","running":1,"startedAt":null,"spentMs":1.9}]}"#).unwrap();
+        let st = StateFile::from_json(
+            r#"{"focus":[{"tid":7,"title":"t","accMs":"12","running":1,"startedAt":null,"spentMs":1.9}]}"#,
+        )
+        .unwrap();
         let t = &st.focus[0];
         assert_eq!((t.tid.as_str(), t.acc_ms, t.running, t.started_at, t.spent_ms), ("7", 12, true, 0, 1));
         assert_eq!(st.settings, Settings::default());

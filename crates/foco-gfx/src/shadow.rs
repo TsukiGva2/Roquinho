@@ -66,7 +66,10 @@ fn erf(x: f32) -> f32 {
     let s = x.signum();
     let x = x.abs();
     let t = 1.0 / (1.0 + 0.327_591_1 * x);
-    let y = 1.0 - (((((1.061_405_4 * t - 1.453_152_1) * t) + 1.421_413_8) * t - 0.284_496_72) * t + 0.254_829_6) * t * (-x * x).exp();
+    let y = 1.0
+        - (((((1.061_405_4 * t - 1.453_152_1) * t) + 1.421_413_8) * t - 0.284_496_72) * t + 0.254_829_6)
+            * t
+            * (-x * x).exp();
     s * y
 }
 
@@ -175,7 +178,17 @@ impl ShadowCache {
     /// `fresh` = the destination is known to be fully transparent (nothing drawn yet), so pixels
     /// are stored instead of blended.
     #[allow(clippy::too_many_arguments)]
-    pub fn composite(&mut self, dst: &mut [u8], dw: i32, dh: i32, clip: IRect, mask: Option<&[u8]>, p: &Params, color: [u8; 4], fresh: bool) {
+    pub fn composite(
+        &mut self,
+        dst: &mut [u8],
+        dw: i32,
+        dh: i32,
+        clip: IRect,
+        mask: Option<&[u8]>,
+        p: &Params,
+        color: [u8; 4],
+        fresh: bool,
+    ) {
         let b = p.bounds();
         let Some(r) = b.intersect(&clip).and_then(|r| r.intersect(&IRect::new(0, 0, dw, dh))) else { return };
         if p.rect.w <= 0 || p.rect.h <= 0 {

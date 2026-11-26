@@ -14,8 +14,8 @@ use crate::pet::{new_pet, PetLike};
 use crate::view::View;
 use crate::widgets::{paint_icon, Icon};
 use foco_base::{
-    path_circle, theme, Anim, Color, Easing, Event, Fill, Mood, Ms, PetKind, Point, Rect, Seq, Surface, TextStyle, Wake,
-    Weight,
+    path_circle, theme, Anim, Color, Easing, Event, Fill, Mood, Ms, PetKind, Point, Rect, Seq, Surface, TextStyle,
+    Wake, Weight,
 };
 
 const W: f32 = 400.0;
@@ -81,7 +81,9 @@ impl AlertView {
             shown: false,
             frame: Rect::default(),
             op: Anim::new(0.0),
-            pop_scale: Seq::new(0.0).pause(POP_PAUSE).to(1.0, 480.0, Easing::OutBack { overshoot: 2.6 }),
+            pop_scale: Seq::new(0.0)
+                .pause(POP_PAUSE)
+                .to(1.0, 480.0, Easing::OutBack { overshoot: 2.6 }),
             pop_rot: Seq::new(-40.0).pause(POP_PAUSE).to(0.0, 420.0, Easing::OutCubic),
             pop_shown: (1.0, 0.0),
             pet: new_pet(),
@@ -285,7 +287,9 @@ impl View for AlertView {
 
     fn bounds(&self) -> Rect {
         let pr = self.pet_rect();
-        self.frame.union(&pr.inflate(self.pet.overdraw(), self.pet.overdraw())).inflate(2.0, 2.0)
+        self.frame
+            .union(&pr.inflate(self.pet.overdraw(), self.pet.overdraw()))
+            .inflate(2.0, 2.0)
     }
 }
 
@@ -305,8 +309,14 @@ mod tests {
 
     fn alert(kind: AlertKind) -> Alert {
         match kind {
-            AlertKind::Info => Alert { kind, title: "E aí. Eu sou o Foquinho".into(), sub: "Clica aqui e joga a primeira demanda na roda".into() },
-            AlertKind::Done => Alert { kind, title: "Destruída!".into(), sub: "Escrever o relatório  ·  12 min".into() },
+            AlertKind::Info => Alert {
+                kind,
+                title: "E aí. Eu sou o Foquinho".into(),
+                sub: "Clica aqui e joga a primeira demanda na roda".into(),
+            },
+            AlertKind::Done => {
+                Alert { kind, title: "Destruída!".into(), sub: "Escrever o relatório  ·  12 min".into() }
+            }
             AlertKind::Added => Alert { kind, title: "No palco agora".into(), sub: "Responder e-mails".into() },
         }
     }
@@ -331,7 +341,9 @@ mod tests {
         assert_eq!(v.pop_rot.value(0.0), -40.0);
         assert_eq!(v.pop_scale.value(179.0), 0.0, "pause");
         // OutBack 2.6 overshoots 1 before settling
-        let peak = (0..48).map(|i| v.pop_scale.value(180.0 + i as f64 * 10.0)).fold(0.0f32, f32::max);
+        let peak = (0..48)
+            .map(|i| v.pop_scale.value(180.0 + i as f64 * 10.0))
+            .fold(0.0f32, f32::max);
         assert!(peak > 1.2, "overshoot {peak}");
         assert_eq!(v.pop_scale.value(700.0), 1.0);
         assert_eq!(v.pop_rot.value(600.0), 0.0);
@@ -396,7 +408,13 @@ mod tests {
 
     fn snap(kind: AlertKind, name: &str) {
         let mut h = Harness::new();
-        h.store.state.focus.push(Task { tid: "a".into(), title: "a".into(), running: true, started_at: h.epoch as i64, ..Task::default() });
+        h.store.state.focus.push(Task {
+            tid: "a".into(),
+            title: "a".into(),
+            running: true,
+            started_at: h.epoch as i64,
+            ..Task::default()
+        });
         let mut v = AlertView::new();
         step(&mut h, &mut v, -1000.0);
         v.set_shown(true, -1000.0);

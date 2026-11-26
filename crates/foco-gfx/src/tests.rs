@@ -54,7 +54,15 @@ fn metrics_match_qt() {
     // Ground truth from Qt 6 (Text.implicitWidth/Height, pixelSize N, default font = Noto Sans via qt6ct).
     let mut r = Renderer::new();
     let mut buf = vec![0u8; 4 * 4 * 4];
-    let hello = [(10.0, 24.234375, 14.0), (11.0, 26.640625, 15.0), (12.0, 29.09375, 17.0), (13.0, 31.5, 18.0), (14.0, 33.9375, 20.0), (15.0, 36.34375, 21.0), (23.0, 55.75, 32.0)];
+    let hello = [
+        (10.0, 24.234375, 14.0),
+        (11.0, 26.640625, 15.0),
+        (12.0, 29.09375, 17.0),
+        (13.0, 31.5, 18.0),
+        (14.0, 33.9375, 20.0),
+        (15.0, 36.34375, 21.0),
+        (23.0, 55.75, 32.0),
+    ];
     r.render(&mut buf, 4, 4, &[IRect::new(0, 0, 4, 4)], &mut |c| {
         for (px, w, h) in hello {
             let st = TextStyle::new(px, Weight::Regular, Color::WHITE);
@@ -82,7 +90,9 @@ fn text_sheet(style: crate::FontStyle, name: &str) {
     let buf = full(w, h, &mut r, [0, 0, 0], &mut |c| {
         c.scale(S, S);
         let mut y = 4.0;
-        for (wi, wname) in [(Weight::Regular, "400"), (Weight::Medium, "500"), (Weight::DemiBold, "600"), (Weight::Bold, "700")] {
+        for (wi, wname) in
+            [(Weight::Regular, "400"), (Weight::Medium, "500"), (Weight::DemiBold, "600"), (Weight::Bold, "700")]
+        {
             for px in [11.0, 12.0, 13.0, 14.0, 15.0, 23.0] {
                 let st = TextStyle::new(px, wi, theme::TEXT);
                 let adv = c.text(&format!("{wname} {px}px  Foquinho Ação áãçêõ AVATAR To Wa"), 6.0, y, &st);
@@ -153,7 +163,13 @@ fn icon_sheet() {
             let (col, row) = ((i % 12) as f32, (i / 12) as f32);
             let x = 8.0 + col * 50.0;
             icons::draw(c, n, Rect::new(x, 8.0 + row * 100.0, 32.0, 32.0), theme::TEXT, 1.8);
-            icons::draw(c, n, Rect::new(x + 4.0, 48.0 + row * 100.0, 16.0, 16.0), theme::accent_text(theme::DEFAULT_ACCENT), 1.8);
+            icons::draw(
+                c,
+                n,
+                Rect::new(x + 4.0, 48.0 + row * 100.0, 16.0, 16.0),
+                theme::accent_text(theme::DEFAULT_ACCENT),
+                1.8,
+            );
             icons::draw(c, n, Rect::new(x + 26.0, 52.0 + row * 100.0, 11.0, 11.0), theme::TEXT2, 1.6);
             let st = TextStyle::new(8.0, Weight::Regular, theme::TEXT3);
             c.text(n, x, 70.0 + row * 100.0, &st);
@@ -163,22 +179,37 @@ fn icon_sheet() {
     // every icon paints something
     for n in icons::names() {
         let mut b = vec![0u8; 40 * 40 * 4];
-        r.render(&mut b, 40, 40, &[IRect::new(0, 0, 40, 40)], &mut |c| icons::draw(c, n, Rect::new(4.0, 4.0, 32.0, 32.0), Color::WHITE, 1.8));
+        r.render(&mut b, 40, 40, &[IRect::new(0, 0, 40, 40)], &mut |c| {
+            icons::draw(c, n, Rect::new(4.0, 4.0, 32.0, 32.0), Color::WHITE, 1.8)
+        });
         assert!(b.chunks_exact(4).any(|p| p[3] > 128), "icon {n} empty");
     }
 }
 
 /// Alpha of Qt's RectangularShadow (blur 34, spread -4, radius 33, offset.y 14, opacity .65) over
 /// 0x80 gray, sampled from a real Qt 6 render: shadow item at (100,60) 300x200.
-const QT_V: [f32; 21] = [0.0, 0.012, 0.012, 0.036, 0.06, 0.096, 0.156, 0.216, 0.3, 0.397, 0.505, 0.613, 0.721, 0.817, 0.901, 0.962, 0.998, 0.998, 0.998, 0.998, 0.998];
-const QT_H: [f32; 21] = [0.0, 0.0, 0.0, 0.012, 0.024, 0.048, 0.072, 0.12, 0.18, 0.264, 0.349, 0.457, 0.565, 0.673, 0.769, 0.865, 0.938, 0.986, 0.998, 0.998, 0.998];
+const QT_V: [f32; 21] = [
+    0.0, 0.012, 0.012, 0.036, 0.06, 0.096, 0.156, 0.216, 0.3, 0.397, 0.505, 0.613, 0.721, 0.817, 0.901, 0.962, 0.998,
+    0.998, 0.998, 0.998, 0.998,
+];
+const QT_H: [f32; 21] = [
+    0.0, 0.0, 0.0, 0.012, 0.024, 0.048, 0.072, 0.12, 0.18, 0.264, 0.349, 0.457, 0.565, 0.673, 0.769, 0.865, 0.938,
+    0.986, 0.998, 0.998, 0.998,
+];
 
 #[test]
 fn shadow_matches_qt() {
     let mut r = Renderer::new();
     let (w, h) = (500u32, 400u32);
     let buf = full(w, h, &mut r, [0x80, 0x80, 0x80], &mut |c| {
-        c.shadow(Rect::new(100.0, 60.0, 300.0, 200.0), 33.0, 34.0, -4.0, Point::new(0.0, 14.0), Color::BLACK.with_alpha(0.65));
+        c.shadow(
+            Rect::new(100.0, 60.0, 300.0, 200.0),
+            33.0,
+            34.0,
+            -4.0,
+            Point::new(0.0, 14.0),
+            Color::BLACK.with_alpha(0.65),
+        );
     });
     save_png("shadow_qt_ref.png", &buf, w, h, None);
     let alpha = |x: usize, y: usize| (128.0 - buf[(y * w as usize + x) * 4] as f32) / 128.0 / 0.65;
@@ -247,7 +278,15 @@ fn clip_opacity_sample() {
         c.translate(200.0, 130.0);
         c.rotate_deg(20.0);
         c.clip_rect(Rect::new(0.0, 0.0, 70.0, 30.0));
-        c.fill_rrect(Rect::new(-20.0, -20.0, 200.0, 100.0), 0.0, &Fill::Linear { p0: Point::new(0.0, 0.0), p1: Point::new(70.0, 0.0), stops: vec![(0.0, theme::ORANGE), (1.0, theme::BLUE)] });
+        c.fill_rrect(
+            Rect::new(-20.0, -20.0, 200.0, 100.0),
+            0.0,
+            &Fill::Linear {
+                p0: Point::new(0.0, 0.0),
+                p1: Point::new(70.0, 0.0),
+                stops: vec![(0.0, theme::ORANGE), (1.0, theme::BLUE)],
+            },
+        );
         c.text("clipped text under rotation", 2.0, 5.0, &TextStyle::new(11.0, Weight::Medium, Color::BLACK));
         c.restore();
         // text clipped by a box edge
@@ -258,10 +297,25 @@ fn clip_opacity_sample() {
         // rings / strokes
         c.stroke_rrect(Rect::new(100.0, 150.0, 60.0, 40.0), 12.0, &Fill::Solid(theme::GREEN), 2.0);
         // radial gradient dot
-        c.fill_rrect(Rect::new(180.0, 160.0, 30.0, 30.0), 15.0, &Fill::Radial { center: Point::new(195.0, 175.0), radius: 15.0, stops: vec![(0.0, Color::WHITE), (1.0, theme::DEFAULT_ACCENT)] });
+        c.fill_rrect(
+            Rect::new(180.0, 160.0, 30.0, 30.0),
+            15.0,
+            &Fill::Radial {
+                center: Point::new(195.0, 175.0),
+                radius: 15.0,
+                stops: vec![(0.0, Color::WHITE), (1.0, theme::DEFAULT_ACCENT)],
+            },
+        );
     });
     save_png("clip_opacity.png", &buf, w, h, None);
-    let px = |x: usize, y: usize| [buf[(y * w as usize + x) * 4], buf[(y * w as usize + x) * 4 + 1], buf[(y * w as usize + x) * 4 + 2], buf[(y * w as usize + x) * 4 + 3]];
+    let px = |x: usize, y: usize| {
+        [
+            buf[(y * w as usize + x) * 4],
+            buf[(y * w as usize + x) * 4 + 1],
+            buf[(y * w as usize + x) * 4 + 2],
+            buf[(y * w as usize + x) * 4 + 3],
+        ]
+    };
     // inside the green double clip, outside it
     assert_eq!(px(190, 60)[3], 255);
     assert_eq!(px(190, 60), [0x3d, 0x8a, 0x24, 255]);
@@ -273,7 +327,14 @@ fn damage_rects_match_full_repaint() {
     // painting only a damaged rect gives exactly the same pixels as a full repaint
     let paint = |c: &mut Canvas| {
         c.scale(S, S);
-        c.shadow(Rect::new(40.0, 20.0, 200.0, 120.0), 20.0, 34.0, -4.0, Point::new(0.0, 14.0), Color::BLACK.with_alpha(0.65));
+        c.shadow(
+            Rect::new(40.0, 20.0, 200.0, 120.0),
+            20.0,
+            34.0,
+            -4.0,
+            Point::new(0.0, 14.0),
+            Color::BLACK.with_alpha(0.65),
+        );
         c.fill_rrect(Rect::new(40.0, 20.0, 200.0, 120.0), 20.0, &Fill::Solid(theme::CARD));
         c.save();
         c.clip_rect(Rect::new(50.0, 30.0, 150.0, 40.0));
@@ -285,7 +346,12 @@ fn damage_rects_match_full_repaint() {
     let (w, h) = (300u32, 200u32);
     let mut full_buf = vec![0u8; (w * h * 4) as usize];
     r.render(&mut full_buf, w, h, &[IRect::new(0, 0, w as i32, h as i32)], &mut |c| paint(c));
-    for rect in [IRect::new(60, 40, 90, 50), IRect::new(0, 30, 300, 20), IRect::new(70, 100, 28, 28), IRect::new(-5, -5, 20, 20)] {
+    for rect in [
+        IRect::new(60, 40, 90, 50),
+        IRect::new(0, 30, 300, 20),
+        IRect::new(70, 100, 28, 28),
+        IRect::new(-5, -5, 20, 20),
+    ] {
         let mut part = full_buf.clone();
         // poison the rect, then repaint just that area
         let rr = rect.intersect(&IRect::new(0, 0, w as i32, h as i32)).unwrap();
@@ -341,7 +407,11 @@ fn bench() {
         let mut cold = Renderer::new();
         let t = Instant::now();
         cold.render(&mut buf, w, h, &[panel], &mut |c| mock_panel(c, &icon_names));
-        println!("cold first frame (fonts + {} glyph rasterisations + shadow tile): {:.0} us", cold.glyph_misses(), t.elapsed().as_secs_f64() * 1e6);
+        println!(
+            "cold first frame (fonts + {} glyph rasterisations + shadow tile): {:.0} us",
+            cold.glyph_misses(),
+            t.elapsed().as_secs_f64() * 1e6
+        );
         let t = Instant::now();
         cold.render(&mut buf, w, h, &[panel], &mut |c| mock_panel(c, &icon_names));
         println!("second frame: {:.0} us", t.elapsed().as_secs_f64() * 1e6);
@@ -374,14 +444,26 @@ fn bench() {
         ("empty (clear + copy only)", |_c| {}),
         ("shadow", |c| {
             c.scale(S, S);
-            c.shadow(Rect::new(10.0, 0.0, 530.0, 700.0), 33.0, 34.0, -4.0, Point::new(0.0, 14.0), Color::BLACK.with_alpha(0.65));
+            c.shadow(
+                Rect::new(10.0, 0.0, 530.0, 700.0),
+                33.0,
+                34.0,
+                -4.0,
+                Point::new(0.0, 14.0),
+                Color::BLACK.with_alpha(0.65),
+            );
         }),
         ("10 text lines", |c| {
             c.scale(S, S);
             let weights = [Weight::Regular, Weight::Medium, Weight::Bold];
             for i in 0..10 {
                 let st = TextStyle::new(13.0, weights[i % 3], theme::TEXT);
-                c.text(&format!("Linha {i} Foquinho demanda de teste Ação {i:02}:12"), 30.0, 20.0 + i as f32 * 22.0, &st);
+                c.text(
+                    &format!("Linha {i} Foquinho demanda de teste Ação {i:02}:12"),
+                    30.0,
+                    20.0 + i as f32 * 22.0,
+                    &st,
+                );
             }
         }),
         ("6 cards (fill+stroke)", |c| {
@@ -394,7 +476,10 @@ fn bench() {
         }),
         ("8 icons", |c| {
             c.scale(S, S);
-            for (i, n) in ["plus", "check", "x", "play", "pause", "chevronUp", "trash", "sliders"].iter().enumerate() {
+            for (i, n) in ["plus", "check", "x", "play", "pause", "chevronUp", "trash", "sliders"]
+                .iter()
+                .enumerate()
+            {
                 icons::draw(c, n, Rect::new(30.0 + i as f32 * 28.0, 640.0, 18.0, 18.0), theme::TEXT, 1.8);
             }
         }),
@@ -426,7 +511,12 @@ fn qt_text_compare() {
         c.scale(S, S);
         let mut y = 0.0;
         for wt in [400, 500, 600, 700] {
-            let wi = match wt { 400 => Weight::Regular, 500 => Weight::Medium, 600 => Weight::DemiBold, _ => Weight::Bold };
+            let wi = match wt {
+                400 => Weight::Regular,
+                500 => Weight::Medium,
+                600 => Weight::DemiBold,
+                _ => Weight::Bold,
+            };
             c.text(&format!("Ação AVATAR To Wa 00:12:34 w{wt}"), 0.0, y, &TextStyle::new(13.0, wi, Color::WHITE));
             y += 20.0;
         }
@@ -451,13 +541,26 @@ fn bench_shadow_tile() {
         let t = Instant::now();
         r.render(&mut buf, w, h, &[band], &mut |c| {
             c.scale(S, S);
-            c.shadow(Rect::new(10.0, 0.0, 530.0, 700.0), rad, 34.0, -4.0, Point::new(0.0, 14.0), Color::BLACK.with_alpha(0.65));
+            c.shadow(
+                Rect::new(10.0, 0.0, 530.0, 700.0),
+                rad,
+                34.0,
+                -4.0,
+                Point::new(0.0, 14.0),
+                Color::BLACK.with_alpha(0.65),
+            );
         });
         let us = t.elapsed().as_secs_f64() * 1e6;
         worst = worst.max(us);
         total += us;
     }
-    println!("radius animation: 20 frames, mean {:.0} us, worst {:.0} us, tiles built {} ({:.1} ms total)", total / 20.0, worst, r.eng.shadows.tiles_built, t0.elapsed().as_secs_f64() * 1e3);
+    println!(
+        "radius animation: 20 frames, mean {:.0} us, worst {:.0} us, tiles built {} ({:.1} ms total)",
+        total / 20.0,
+        worst,
+        r.eng.shadows.tiles_built,
+        t0.elapsed().as_secs_f64() * 1e3
+    );
 }
 
 #[test]

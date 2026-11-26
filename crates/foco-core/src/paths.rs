@@ -19,7 +19,9 @@ fn home() -> PathBuf {
 
 /// `$XDG_DATA_HOME` or `~/.local/share`, plus `/foco-max`.
 pub fn data_dir() -> PathBuf {
-    env_path("XDG_DATA_HOME").unwrap_or_else(|| home().join(".local/share")).join("foco-max")
+    env_path("XDG_DATA_HOME")
+        .unwrap_or_else(|| home().join(".local/share"))
+        .join("foco-max")
 }
 
 /// `$XDG_CONFIG_HOME` or `~/.config` (the generic config location, no app suffix).

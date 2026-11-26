@@ -11,18 +11,16 @@
 //! deadlines are the running clocks (second boundary, `FocusSection`) and the minute of the
 //! today pill. Section damage is whatever the sections report; scrolling damages the viewport.
 
-use crate::cx::{Cx, CursorShape, DamageSink, FocusId, Handled, Msg, PaintCx};
+use crate::cx::{CursorShape, Cx, DamageSink, FocusId, Handled, Msg, PaintCx};
 use crate::model;
 use crate::pet::{new_pet, PetLike};
 use crate::view::{Section, View};
-use crate::widgets::{
-    paint_icon, paint_section_label, Icon, IconButton, Scroll, SECTION_LABEL_H,
-};
 use crate::views::done::DoneSection;
 use crate::views::focus_card::FocusSection;
 use crate::views::input_field::InputField;
 use crate::views::queue::QueueSection;
 use crate::views::settings::SettingsPanel;
+use crate::widgets::{paint_icon, paint_section_label, Icon, IconButton, Scroll, SECTION_LABEL_H};
 use foco_base::model::fmt_short;
 use foco_base::{
     pet_event, theme, Anim, AppCmd, Color, Easing, Event, Fill, Mood, Ms, PetKind, Point, Rect, Surface, TextStyle,
@@ -344,10 +342,7 @@ impl ExpandedView {
         let now = cx.now;
         let st = cx.store.state();
         if self.lh.name == 0.0 {
-            self.lh = Lh {
-                name: cx.text.line_height(&name_style()),
-                line: cx.text.line_height(&line_style()),
-            };
+            self.lh = Lh { name: cx.text.line_height(&name_style()), line: cx.text.line_height(&line_style()) };
         }
         let mut col_changed = false;
         if self.name != st.settings.pet_name || !self.inited {
@@ -373,7 +368,9 @@ impl ExpandedView {
         let mood = model::mood(cx.store, cx.epoch);
         let quip = cx.env.quip.as_deref();
         let key_changed = match &self.line_key {
-            Some((m, nf, nq, q)) => *m != mood || *nf != st.focus.len() || *nq != st.queue.len() || q.as_deref() != quip,
+            Some((m, nf, nq, q)) => {
+                *m != mood || *nf != st.focus.len() || *nq != st.queue.len() || q.as_deref() != quip
+            }
             None => true,
         };
         self.n_focus = st.focus.len();
@@ -518,7 +515,11 @@ impl ExpandedView {
             }
         }
         // header model state (cheap; runs also while invisible so that heights stay right)
-        if !self.inited || cx.rev != self.last_rev || cx.env.rev != self.last_env_rev || self.today_at.is_some_and(|t| now >= t) {
+        if !self.inited
+            || cx.rev != self.last_rev
+            || cx.env.rev != self.last_env_rev
+            || self.today_at.is_some_and(|t| now >= t)
+        {
             self.refresh_header(cx);
         } else {
             let mood = model::mood(cx.store, cx.epoch);
@@ -549,9 +550,19 @@ impl ExpandedView {
         if counts != self.count_shown {
             self.count_shown = counts;
             let vp = self.viewport();
-            cx.damage.add(Rect::new(self.frame.x + PAD, vp.y - self.scroll.offset(now) + self.ml.label_focus, 120.0, SECTION_LABEL_H));
+            cx.damage.add(Rect::new(
+                self.frame.x + PAD,
+                vp.y - self.scroll.offset(now) + self.ml.label_focus,
+                120.0,
+                SECTION_LABEL_H,
+            ));
             if let Some(l) = self.ml.label_queue {
-                cx.damage.add(Rect::new(self.frame.x + PAD, vp.y - self.scroll.offset(now) + l, 120.0, SECTION_LABEL_H));
+                cx.damage.add(Rect::new(
+                    self.frame.x + PAD,
+                    vp.y - self.scroll.offset(now) + l,
+                    120.0,
+                    SECTION_LABEL_H,
+                ));
             }
         }
 
@@ -749,7 +760,8 @@ impl View for ExpandedView {
         // header: buttons
         let o = self.btn_settings.pointer(cx, ev);
         if o.clicked {
-            cx.msgs.push(Msg::Cmd(if self.settings_open { AppCmd::CloseSettings } else { AppCmd::OpenSettings }));
+            cx.msgs
+                .push(Msg::Cmd(if self.settings_open { AppCmd::CloseSettings } else { AppCmd::OpenSettings }));
         }
         out = merge(out, o.handled);
         let o = self.btn_hide.pointer(cx, ev);
@@ -842,11 +854,7 @@ impl View for ExpandedView {
         if !self.visible(now) {
             return if fading { Wake::Frame } else { Wake::Idle };
         }
-        if fading
-            || self.main_op.is_animating(now)
-            || self.xp.is_animating(now)
-            || self.scroll.is_animating(now)
-        {
+        if fading || self.main_op.is_animating(now) || self.xp.is_animating(now) || self.scroll.is_animating(now) {
             return Wake::Frame;
         }
         let mut w = self.pet.next_wake(now);
@@ -1136,7 +1144,12 @@ mod tests {
         // the pet placeholder never wakes and nothing animates
         assert_eq!(v.next_wake(t0 + 50.0), Wake::Idle);
         // run a task whose clock is at 1.25 s: wake on the second boundary
-        h.store.state.focus[0] = Task { running: true, acc_ms: 0, started_at: (h.epoch + t0 + 100.0) as i64 - 1250, ..h.store.state.focus[0].clone() };
+        h.store.state.focus[0] = Task {
+            running: true,
+            acc_ms: 0,
+            started_at: (h.epoch + t0 + 100.0) as i64 - 1250,
+            ..h.store.state.focus[0].clone()
+        };
         h.rev += 1;
         step(&mut h, &mut v, t0 + 100.0);
         step(&mut h, &mut v, t0 + 900.0); // let the card fade-in settle
@@ -1291,14 +1304,19 @@ mod tests {
 
     #[test]
     fn snapshots() {
-        for (n_focus, with_queue, name) in
-            [(0, false, "expanded-0-focus.png"), (1, true, "expanded-1-focus-queue.png"), (2, true, "expanded-2-focus-queue-done.png")]
-        {
+        for (n_focus, with_queue, name) in [
+            (0, false, "expanded-0-focus.png"),
+            (1, true, "expanded-1-focus-queue.png"),
+            (2, true, "expanded-2-focus-queue-done.png"),
+        ] {
             let mut h = Harness::new();
             h.store.state.settings.pet_name = "Foquinho".into();
             h.store.state.total_done = 7;
             for i in 0..n_focus {
-                h.store.state.focus.push(task(&h, &format!("t{i}"), i == 0, 61_000 * (i as i64 + 1)));
+                h.store
+                    .state
+                    .focus
+                    .push(task(&h, &format!("t{i}"), i == 0, 61_000 * (i as i64 + 1)));
             }
             if with_queue {
                 h.store.state.queue.push(task(&h, "q1", false, 0));

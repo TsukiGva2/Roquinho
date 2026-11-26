@@ -3,7 +3,7 @@
 use super::color_anim::ColorAnim;
 use super::icon::{paint_icon, Icon, DEFAULT_STROKE};
 use super::mouse::{MouseArea, MouseOut};
-use crate::cx::{Cx, CursorShape};
+use crate::cx::{CursorShape, Cx};
 use foco_base::{theme, Anim, Color, Easing, Event, Fill, Ms, Rect, Surface, Wake};
 
 /// `hoverBg` default `#14000000` (a dark overlay on the light surfaces).
@@ -87,7 +87,8 @@ impl IconButton {
         }
     }
     fn retarget(&mut self, now: Ms) {
-        self.scale.animate_to(if self.ma.pressed_inside() { 0.86 } else { 1.0 }, 140.0, Easing::OutQuad, now);
+        self.scale
+            .animate_to(if self.ma.pressed_inside() { 0.86 } else { 1.0 }, 140.0, Easing::OutQuad, now);
         let want = if self.ma.hovered() { self.hover_bg } else { self.bg };
         self.bg_anim.animate_to(want, 140.0, now);
     }

@@ -12,7 +12,13 @@ use std::time::{Duration, Instant};
 
 /// Abstract socket name (without the leading NUL): `foco-max-$USER`.
 pub fn socket_name() -> String {
-    format!("foco-max-{}", std::env::var("USER").ok().filter(|u| !u.is_empty()).unwrap_or_else(|| "user".into()))
+    format!(
+        "foco-max-{}",
+        std::env::var("USER")
+            .ok()
+            .filter(|u| !u.is_empty())
+            .unwrap_or_else(|| "user".into())
+    )
 }
 
 /// Connects to the running instance, writes `line` + `'\n'` and closes. `false` if there is no
@@ -24,12 +30,9 @@ pub fn send_to_running(line: &str) -> bool {
 /// Like [`send_to_running`] for an explicit abstract socket name.
 pub fn send_to(name: &str, line: &str) -> bool {
     let Ok(addr) = SocketAddrUnix::new_abstract_name(name.as_bytes()) else { return false };
-    let Ok(fd) = net::socket_with(
-        AddressFamily::UNIX,
-        SocketType::STREAM,
-        SocketFlags::CLOEXEC | SocketFlags::NONBLOCK,
-        None,
-    ) else {
+    let Ok(fd) =
+        net::socket_with(AddressFamily::UNIX, SocketType::STREAM, SocketFlags::CLOEXEC | SocketFlags::NONBLOCK, None)
+    else {
         return false;
     };
     let mut tries = 0;

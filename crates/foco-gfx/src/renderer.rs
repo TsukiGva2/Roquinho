@@ -83,7 +83,14 @@ impl Renderer {
     /// For each damaged rect (device px): clear to transparent, call `paint` with a [`Canvas`]
     /// clipped to that rect (canvas coordinates are device pixels, origin = top-left of the whole
     /// buffer) and copy the result into `target` (BGRA premultiplied, stride = `width * 4`).
-    pub fn render(&mut self, target: &mut [u8], width: u32, height: u32, rects: &[IRect], paint: &mut dyn FnMut(&mut Canvas)) {
+    pub fn render(
+        &mut self,
+        target: &mut [u8],
+        width: u32,
+        height: u32,
+        rects: &[IRect],
+        paint: &mut dyn FnMut(&mut Canvas),
+    ) {
         let stride = width as usize * 4;
         if target.len() < stride * height as usize {
             return;

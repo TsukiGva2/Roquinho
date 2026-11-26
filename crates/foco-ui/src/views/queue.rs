@@ -8,7 +8,7 @@
 //! Damage: list transitions damage the union of the list's rows before and after; hover fades damage
 //! only their row; the dragged row damages its own old and new rect.
 
-use crate::cx::{Cx, CursorShape, FocusId, Handled, Msg, PaintCx};
+use crate::cx::{CursorShape, Cx, FocusId, Handled, Msg, PaintCx};
 use crate::view::{Section, View};
 use crate::widgets::{
     paint_icon, paint_text_centered, ColorAnim, Icon, IconButton, InputOutcome, KeyedList, ListSpec, TextInput,
@@ -195,7 +195,10 @@ impl QueueSection {
     }
 
     fn list_rect(&self, now: Ms) -> Rect {
-        self.list.bounds(now, self.frame.x, self.w, |_| ROW_H).translate(0.0, self.frame.y).inflate(6.0, 2.0)
+        self.list
+            .bounds(now, self.frame.x, self.w, |_| ROW_H)
+            .translate(0.0, self.frame.y)
+            .inflate(6.0, 2.0)
     }
 
     fn drag_damage_rect(&self) -> Rect {
@@ -230,8 +233,10 @@ impl QueueSection {
             Color::TRANSPARENT
         };
         f.bg.animate_to(bg, 120.0, cx.now);
-        f.grip.animate_to(if hovered || dragging { 0.9 } else { 0.25 }, 140.0, Easing::Linear, cx.now);
-        f.acts.animate_to(if hovered { 1.0 } else { 0.0 }, 140.0, Easing::Linear, cx.now);
+        f.grip
+            .animate_to(if hovered || dragging { 0.9 } else { 0.25 }, 140.0, Easing::Linear, cx.now);
+        f.acts
+            .animate_to(if hovered { 1.0 } else { 0.0 }, 140.0, Easing::Linear, cx.now);
         if !hovered {
             f.target.reset(cx);
             f.trash.reset(cx);
@@ -349,7 +354,8 @@ impl QueueSection {
         }
         if self.editor.text != e.orig {
             if let Some(index) = Self::model_index(cx, &e.tid) {
-                cx.msgs.push(Msg::Act(Action::RenameQueue { index, title: self.editor.text.clone() }));
+                cx.msgs
+                    .push(Msg::Act(Action::RenameQueue { index, title: self.editor.text.clone() }));
             }
         }
     }
@@ -399,9 +405,9 @@ impl QueueSection {
         g.y = (g.row0_y + (pointer_y - self.frame.y - g.press_y)).clamp(-4.0, max_y);
         // `DropArea` slots are the 40 px rows (the 2 px gaps belong to none)
         let centre = g.y + ROW_H * 0.5;
-        let slot = (centre >= 0.0).then(|| (centre / (ROW_H + SPACING)).floor() as usize).filter(|&s| {
-            s < n && centre - s as f32 * (ROW_H + SPACING) < ROW_H
-        });
+        let slot = (centre >= 0.0)
+            .then(|| (centre / (ROW_H + SPACING)).floor() as usize)
+            .filter(|&s| s < n && centre - s as f32 * (ROW_H + SPACING) < ROW_H);
         if slot != g.last_in {
             g.last_in = slot;
             if let Some(s) = slot {
@@ -587,7 +593,9 @@ impl View for QueueSection {
         }
         let hover = &self.hover;
         let dragging = self.grip.as_ref().filter(|g| g.active).map(|g| g.key.as_str());
-        self.fades.retain(|f| hover.as_deref() == Some(f.key.as_str()) || dragging == Some(f.key.as_str()) || f.animating(now));
+        self.fades.retain(|f| {
+            hover.as_deref() == Some(f.key.as_str()) || dragging == Some(f.key.as_str()) || f.animating(now)
+        });
     }
 
     fn layout(&mut self, cx: &mut Cx, frame: Rect) {
@@ -851,7 +859,10 @@ mod tests {
         h.with_cx(now, |cx| q.event(cx, e))
     }
     fn acts(h: &mut Harness) -> Vec<Action> {
-        h.take_msgs().into_iter().filter_map(|m| if let Msg::Act(a) = m { Some(a) } else { None }).collect()
+        h.take_msgs()
+            .into_iter()
+            .filter_map(|m| if let Msg::Act(a) = m { Some(a) } else { None })
+            .collect()
     }
     fn row_y(i: usize) -> f32 {
         FRAME.y + i as f32 * 42.0
@@ -1120,7 +1131,8 @@ mod tests {
 
     #[test]
     fn png_snapshots() {
-        let mut h = queue_h(&["Escrever o relatório", "Revisar o PR do Foquinho", "Pagar a conta de luz", "Marcar dentista"]);
+        let mut h =
+            queue_h(&["Escrever o relatório", "Revisar o PR do Foquinho", "Pagar a conta de luz", "Marcar dentista"]);
         let mut q = QueueSection::new();
         let frame = |q: &mut QueueSection, h: &mut Harness, now| {
             h.with_cx(now, |cx| {

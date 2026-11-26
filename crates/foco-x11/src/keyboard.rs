@@ -37,9 +37,7 @@ impl RuleNames {
     /// Parses the property value: five NUL-separated strings rules, model, layout, variant,
     /// options. Empty fields fall back to the defaults (evdev/pc105/br).
     pub fn parse(data: &[u8]) -> RuleNames {
-        let mut it = data
-            .split(|&b| b == 0)
-            .map(|s| String::from_utf8_lossy(s).into_owned());
+        let mut it = data.split(|&b| b == 0).map(|s| String::from_utf8_lossy(s).into_owned());
         let d = RuleNames::default();
         let mut next = |def: &str| match it.next() {
             Some(s) if !s.is_empty() => s,
@@ -50,13 +48,7 @@ impl RuleNames {
         let layout = next(&d.layout);
         let variant = it.next().unwrap_or_default();
         let options = it.next().unwrap_or_default();
-        RuleNames {
-            rules,
-            model,
-            layout,
-            variant,
-            options,
-        }
+        RuleNames { rules, model, layout, variant, options }
     }
 }
 
@@ -87,21 +79,11 @@ impl Keyboard {
         let compose = compose::Table::new_from_locale(&ctx, &locale(), compose::COMPILE_NO_FLAGS)
             .ok()
             .map(|t| compose::State::new(&t, compose::STATE_NO_FLAGS));
-        Ok(Keyboard {
-            ctx,
-            keymap,
-            state,
-            compose,
-            names,
-        })
+        Ok(Keyboard { ctx, keymap, state, compose, names })
     }
 
     fn compile(ctx: &xkb::Context, n: &RuleNames) -> Result<xkb::Keymap, String> {
-        let opts = if n.options.is_empty() {
-            None
-        } else {
-            Some(n.options.clone())
-        };
+        let opts = if n.options.is_empty() { None } else { Some(n.options.clone()) };
         xkb::Keymap::new_from_names(
             ctx,
             n.rules.as_str(),
@@ -140,12 +122,7 @@ impl Keyboard {
         let mut out = Vec::new();
         for code in lo..=hi {
             let kc = Keycode::new(code);
-            let hit = (0..2).any(|lvl| {
-                self.keymap
-                    .key_get_syms_by_level(kc, 0, lvl)
-                    .iter()
-                    .any(|s| s.raw() == sym)
-            });
+            let hit = (0..2).any(|lvl| self.keymap.key_get_syms_by_level(kc, 0, lvl).iter().any(|s| s.raw() == sym));
             if hit {
                 out.push(code as u8);
             }
@@ -162,8 +139,7 @@ impl Keyboard {
         fallback: &mut dyn FnMut(u8, bool) -> Option<u32>,
     ) -> Option<KeyEvent> {
         let st = state as u32;
-        self.state
-            .update_mask(st & 0xff, 0, 0, 0, 0, (st >> 13) & 3);
+        self.state.update_mask(st & 0xff, 0, 0, 0, 0, (st >> 13) & 3);
         let kc = Keycode::new(keycode as u32);
         let mut sym = self.state.key_get_one_sym(kc);
         if sym.raw() == 0 {
@@ -177,12 +153,8 @@ impl Keyboard {
         if is_modifier(sym.raw()) {
             return None;
         }
-        let mods = Mods {
-            ctrl: st & X_CONTROL != 0,
-            shift: st & X_SHIFT != 0,
-            alt: st & X_MOD1 != 0,
-            meta: st & X_MOD4 != 0,
-        };
+        let mods =
+            Mods { ctrl: st & X_CONTROL != 0, shift: st & X_SHIFT != 0, alt: st & X_MOD1 != 0, meta: st & X_MOD4 != 0 };
         let command = mods.ctrl || mods.alt || mods.meta;
 
         let mut text: Option<String> = None;
@@ -308,10 +280,7 @@ mod tests {
 
     fn press(kb: &mut Keyboard, sym: u32, state: u16) -> Option<KeyEvent> {
         // keycode that produces `sym` at level 0/1 of group 0
-        let code = *kb
-            .keycodes_for(sym)
-            .first()
-            .unwrap_or_else(|| panic!("no key for {sym:#x}"));
+        let code = *kb.keycodes_for(sym).first().unwrap_or_else(|| panic!("no key for {sym:#x}"));
         kb.key_press(code, state, &mut |_, _| None)
     }
 
@@ -321,30 +290,15 @@ mod tests {
         let a = press(&mut kb, 'a' as u32, 0).unwrap();
         assert_eq!((a.key, a.text.as_deref()), (Key::Char('a'), Some("a")));
         // ABNT2: dead_acute, dead_tilde, dead_circumflex are keys of their own.
-        assert!(
-            press(&mut kb, 0xfe51, 0).is_none(),
-            "dead key alone is swallowed"
-        );
+        assert!(press(&mut kb, 0xfe51, 0).is_none(), "dead key alone is swallowed");
         let e = press(&mut kb, 'a' as u32, 0).unwrap();
         assert_eq!(e.text.as_deref(), Some("\u{e1}"), "acute + a");
         assert!(press(&mut kb, 0xfe53, 0).is_none());
-        assert_eq!(
-            press(&mut kb, 'a' as u32, 0).unwrap().text.as_deref(),
-            Some("\u{e3}")
-        );
-        assert!(
-            press(&mut kb, 0xfe52, X_SHIFT as u16).is_none(),
-            "shift+~ is dead_circumflex"
-        );
-        assert_eq!(
-            press(&mut kb, 'e' as u32, 0).unwrap().text.as_deref(),
-            Some("\u{ea}")
-        );
+        assert_eq!(press(&mut kb, 'a' as u32, 0).unwrap().text.as_deref(), Some("\u{e3}"));
+        assert!(press(&mut kb, 0xfe52, X_SHIFT as u16).is_none(), "shift+~ is dead_circumflex");
+        assert_eq!(press(&mut kb, 'e' as u32, 0).unwrap().text.as_deref(), Some("\u{ea}"));
         // ccedilla is a direct key on ABNT2
-        assert_eq!(
-            press(&mut kb, 0xe7, 0).unwrap().text.as_deref(),
-            Some("\u{e7}")
-        );
+        assert_eq!(press(&mut kb, 0xe7, 0).unwrap().text.as_deref(), Some("\u{e7}"));
     }
 
     #[test]
@@ -358,9 +312,6 @@ mod tests {
         let sp = press(&mut kb, 0x20, 0).unwrap();
         assert_eq!((sp.key, sp.text.as_deref()), (Key::Space, Some(" ")));
         assert_eq!(press(&mut kb, 0xff0d, 0).unwrap().key, Key::Enter);
-        assert!(
-            press(&mut kb, 0xffe1, 0).is_none(),
-            "modifiers are not reported"
-        );
+        assert!(press(&mut kb, 0xffe1, 0).is_none(), "modifiers are not reported");
     }
 }

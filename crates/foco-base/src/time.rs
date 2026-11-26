@@ -17,7 +17,10 @@ pub fn mono_ms() -> Ms {
 
 /// Wall clock in ms since the Unix epoch (JS `Date.now()`), fractional.
 pub fn epoch_ms() -> f64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs_f64() * 1000.0).unwrap_or(0.0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs_f64() * 1000.0)
+        .unwrap_or(0.0)
 }
 
 #[repr(C)]
@@ -44,12 +47,25 @@ extern "C" {
 fn local_tm(epoch_ms: f64) -> Option<Tm> {
     let secs = (epoch_ms / 1000.0).floor() as i64;
     let mut tm = Tm {
-        tm_sec: 0, tm_min: 0, tm_hour: 0, tm_mday: 0, tm_mon: 0, tm_year: 0, tm_wday: 0,
-        tm_yday: 0, tm_isdst: 0, tm_gmtoff: 0, tm_zone: std::ptr::null(),
+        tm_sec: 0,
+        tm_min: 0,
+        tm_hour: 0,
+        tm_mday: 0,
+        tm_mon: 0,
+        tm_year: 0,
+        tm_wday: 0,
+        tm_yday: 0,
+        tm_isdst: 0,
+        tm_gmtoff: 0,
+        tm_zone: std::ptr::null(),
     };
     // SAFETY: `secs` and `tm` are valid for the call; localtime_r only writes into `tm`.
     let r = unsafe { localtime_r(&secs, &mut tm) };
-    if r.is_null() { None } else { Some(tm) }
+    if r.is_null() {
+        None
+    } else {
+        Some(tm)
+    }
 }
 
 fn mk(mut tm: Tm) -> f64 {

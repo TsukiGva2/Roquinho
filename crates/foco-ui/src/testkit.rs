@@ -1,9 +1,9 @@
 //! Fakes and a harness for unit-testing views and widgets without a renderer or a store.
 //! Text is the `PixSurface` placeholder (`0.55 * px` per char, line height `1.2 * px`).
 
-use crate::cx::{Cx, CursorShape, DamageSink, Env, FocusId, Msg, PaintCx, StoreRead, TextMeasure, S, WIN_DEV};
+use crate::cx::{CursorShape, Cx, DamageSink, Env, FocusId, Msg, PaintCx, StoreRead, TextMeasure, S, WIN_DEV};
 use crate::pet::PetLike;
-use foco_base::{Color, Ms, Mood, PetKind, PixSurface, Rect, StateFile, Surface, TextStyle, Wake};
+use foco_base::{Color, Mood, Ms, PetKind, PixSurface, Rect, StateFile, Surface, TextStyle, Wake};
 
 /// A store that is just a `StateFile`.
 #[derive(Default)]

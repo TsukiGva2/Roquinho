@@ -29,7 +29,9 @@ impl Rc {
     /// Reads `path` (a missing or unreadable file is an empty rc).
     pub fn load(path: impl AsRef<Path>) -> Rc {
         let path = path.as_ref().to_path_buf();
-        let text = fs::read(&path).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default();
+        let text = fs::read(&path)
+            .map(|b| String::from_utf8_lossy(&b).into_owned())
+            .unwrap_or_default();
         Rc { path, sections: parse(&text), dirty: false }
     }
 
@@ -572,9 +574,7 @@ mod tests {
 
     #[test]
     fn read_matches_qsettings_probe() {
-        let rc = rc_from(
-            "[General]\nscreen=HDMI-2\nbs=a\\\\b\\x41\\n\nsp=  padded  \nDup=1\ndup=2\n; comment\ne=\n",
-        );
+        let rc = rc_from("[General]\nscreen=HDMI-2\nbs=a\\\\b\\x41\\n\nsp=  padded  \nDup=1\ndup=2\n; comment\ne=\n");
         assert_eq!(rc.get("General", "bs"), Some("a\\bA\n"));
         assert_eq!(rc.get("General", "sp"), Some("padded"));
         assert_eq!(rc.get("General", "Dup"), Some("1"));
@@ -585,7 +585,9 @@ mod tests {
 
     #[test]
     fn value_escape_roundtrip() {
-        for v in ["", "a", "a,b", " x", "x ", "q\"q", "b\\s", "\n\t\r", "@x", "@@x", "é;ç=", "a\u{1}b", "\u{1}1f", "日本"] {
+        for v in
+            ["", "a", "a,b", " x", "x ", "q\"q", "b\\s", "\n\t\r", "@x", "@@x", "é;ç=", "a\u{1}b", "\u{1}1f", "日本"]
+        {
             let esc = escape_value(v);
             assert_eq!(unescape_value(&esc), v, "{v:?} -> {esc}");
         }
@@ -612,7 +614,10 @@ mod tests {
         assert_eq!(again.get("General", "weird key"), Some("1"));
         assert_eq!(again.accent(), Some("#315bef"));
         // no stray temp files
-        let names: Vec<_> = fs::read_dir(p.parent().unwrap()).unwrap().map(|e| e.unwrap().file_name()).collect();
+        let names: Vec<_> = fs::read_dir(p.parent().unwrap())
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
         assert_eq!(names.len(), 1, "{names:?}");
     }
 
@@ -630,8 +635,11 @@ mod tests {
     fn shortcut_list_writes_missing_defaults_but_not_music() {
         let dir = TempDir::new("rcs");
         let p = dir.path().join("foco-maxrc");
-        fs::write(&p, "[General]\nscreen=HDMI-2\n\n[shortcuts]\nquick-add=W-A-g\ncomplete=\nmusic-prev=\"Meta+Alt+,\"\n")
-            .unwrap();
+        fs::write(
+            &p,
+            "[General]\nscreen=HDMI-2\n\n[shortcuts]\nquick-add=W-A-g\ncomplete=\nmusic-prev=\"Meta+Alt+,\"\n",
+        )
+        .unwrap();
         let mut rc = Rc::load(&p);
         let list = shortcut_list(&mut rc);
         assert_eq!(

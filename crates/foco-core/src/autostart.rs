@@ -78,7 +78,9 @@ fn update_openbox(dir: &Path, enabled: bool, exe: &Path) -> io::Result<()> {
     if !enabled && !path.exists() {
         return Ok(());
     }
-    let old = fs::read(&path).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default();
+    let old = fs::read(&path)
+        .map(|b| String::from_utf8_lossy(&b).into_owned())
+        .unwrap_or_default();
     let mut lines: Vec<&str> = old.split('\n').collect();
     while lines.last().is_some_and(|l| l.is_empty()) {
         lines.pop();
@@ -120,8 +122,11 @@ mod tests {
         let t = TempDir::new("as");
         let cfg = t.path();
         fs::create_dir_all(cfg.join("openbox")).unwrap();
-        fs::write(cfg.join("openbox/autostart"), "picom &\n(sleep 3; \"/old\" start) &  # foquinho\nnitrogen --restore &\n\n\n")
-            .unwrap();
+        fs::write(
+            cfg.join("openbox/autostart"),
+            "picom &\n(sleep 3; \"/old\" start) &  # foquinho\nnitrogen --restore &\n\n\n",
+        )
+        .unwrap();
         set_in(cfg, true, Path::new(EXE)).unwrap();
         assert_eq!(
             fs::read_to_string(cfg.join("openbox/autostart")).unwrap(),
@@ -164,7 +169,10 @@ mod tests {
         fs::write(t.path().join("real"), "a &\n").unwrap();
         std::os::unix::fs::symlink(t.path().join("real"), t.path().join("openbox/autostart")).unwrap();
         set_in(t.path(), true, Path::new(EXE)).unwrap();
-        assert!(fs::symlink_metadata(t.path().join("openbox/autostart")).unwrap().file_type().is_symlink());
+        assert!(fs::symlink_metadata(t.path().join("openbox/autostart"))
+            .unwrap()
+            .file_type()
+            .is_symlink());
         assert!(fs::read_to_string(t.path().join("real")).unwrap().contains("# foquinho"));
     }
 }

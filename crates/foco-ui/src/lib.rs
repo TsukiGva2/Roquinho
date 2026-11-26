@@ -14,8 +14,8 @@ pub mod views;
 pub mod widgets;
 
 pub use cx::{
-    Cx, CursorShape, DamageSink, Env, FocusId, Handled, Msg, PaintCx, ScreenInfo, StoreRead, TextMeasure, AUTO_ACCENT, S,
-    WIN, WIN_DEV,
+    CursorShape, Cx, DamageSink, Env, FocusId, Handled, Msg, PaintCx, ScreenInfo, StoreRead, TextMeasure, AUTO_ACCENT,
+    S, WIN, WIN_DEV,
 };
 pub use notch::NotchGeom;
 pub use pet::{new_pet, PetLike};

@@ -108,8 +108,7 @@ impl Color {
     /// Converts for tiny-skia, SWAPPING r and b (see the module docs).
     pub fn to_skia(self) -> tiny_skia::Color {
         let c = |v: f32| v.clamp(0.0, 1.0);
-        tiny_skia::Color::from_rgba(c(self.b), c(self.g), c(self.r), c(self.a))
-            .unwrap_or(tiny_skia::Color::TRANSPARENT)
+        tiny_skia::Color::from_rgba(c(self.b), c(self.g), c(self.r), c(self.a)).unwrap_or(tiny_skia::Color::TRANSPARENT)
     }
 }
 

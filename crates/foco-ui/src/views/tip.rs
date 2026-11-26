@@ -15,12 +15,11 @@
 //! `At(next character)` while typing, `At(next float level)` otherwise, `Idle` when hidden.
 
 use super::collapsed::next_level_change;
-use crate::cx::{Cx, CursorShape, Handled, Msg, PaintCx};
+use crate::cx::{CursorShape, Cx, Handled, Msg, PaintCx};
 use crate::view::View;
 use crate::widgets::{ColorAnim, MouseArea};
 use foco_base::{
-    path_from_svg, theme, Anim, Color, Easing, Event, Fill, Ms, Point, Rect, Size, Surface, TextStyle, Wake,
-    Weight,
+    path_from_svg, theme, Anim, Color, Easing, Event, Fill, Ms, Point, Rect, Size, Surface, TextStyle, Wake, Weight,
 };
 use std::f32::consts::PI;
 use tiny_skia::{LineJoin, Path, Stroke};
@@ -167,7 +166,8 @@ impl TipView {
             self.shown = true;
             self.t0 = now;
             self.frozen = None;
-            self.appear.animate_to_delayed(1.0, POP_DELAY, POP_MS, Easing::OutBack { overshoot: 1.8 }, now);
+            self.appear
+                .animate_to_delayed(1.0, POP_DELAY, POP_MS, Easing::OutBack { overshoot: 1.8 }, now);
             self.float_t0 = Some(now);
         } else {
             let (c, r) = self.chars_rows(now);
@@ -278,13 +278,7 @@ impl TipView {
     /// Local -> window bounding box at the given appear scale and float.
     fn to_win(&self, r: Rect, k: f32, fq: f32) -> Rect {
         let tx = Self::TAIL_X;
-        Rect::new(
-            self.frame.x + tx + k * (r.x - tx),
-            self.frame.y + fq + k * r.y,
-            r.w * k,
-            r.h * k,
-        )
-        .inflate(1.0, 1.0)
+        Rect::new(self.frame.x + tx + k * (r.x - tx), self.frame.y + fq + k * r.y, r.w * k, r.h * k).inflate(1.0, 1.0)
     }
 
     /// Window -> local (inverse of the paint transform).
@@ -369,7 +363,8 @@ impl TipView {
     fn retarget_ok(&mut self, accent: Color, now: Ms) {
         let want = if self.ok_ma.hovered() { Self::accent_hover(accent) } else { accent };
         self.ok_color.animate_to(want, 120.0, now);
-        self.ok_scale.animate_to(if self.ok_ma.pressed() { 0.92 } else { 1.0 }, 120.0, Easing::Linear, now);
+        self.ok_scale
+            .animate_to(if self.ok_ma.pressed() { 0.92 } else { 1.0 }, 120.0, Easing::Linear, now);
     }
 }
 
@@ -476,7 +471,10 @@ impl View for TipView {
         if never.clicked {
             cx.msgs.push(Msg::TipAnswer { never: true });
         }
-        [ok.handled, never.handled].into_iter().max_by_key(|h| *h as u8).unwrap_or(Handled::No)
+        [ok.handled, never.handled]
+            .into_iter()
+            .max_by_key(|h| *h as u8)
+            .unwrap_or(Handled::No)
     }
 
     fn paint(&mut self, s: &mut dyn Surface, pc: &PaintCx) {
@@ -525,11 +523,7 @@ impl View for TipView {
         let tw = s.text(typed, PAD_X, TITLE_Y, &ts);
         if ci < n && appear > 0.9 {
             let cxp = PAD_X + tw + 6.0;
-            s.fill_rrect(
-                Rect::new(cxp, TITLE_Y + self.lh_title * 0.5 - 6.5, 2.0, 13.0),
-                1.0,
-                &Fill::Solid(accent),
-            );
+            s.fill_rrect(Rect::new(cxp, TITLE_Y + self.lh_title * 0.5 - 6.5, 2.0, 13.0), 1.0, &Fill::Solid(accent));
         }
 
         // rows
@@ -622,11 +616,7 @@ impl View for TipView {
             w = w.merge_at(Wake::at(now, self.type_start()), now);
         } else if now < self.type_end() {
             let next_c = (self.chars_rows(now).0.round() + 0.5).min(n);
-            let t = if next_c >= n {
-                self.type_end()
-            } else {
-                self.type_start() + (next_c / n) as Ms * TYPE_MS + 0.5
-            };
+            let t = if next_c >= n { self.type_end() } else { self.type_start() + (next_c / n) as Ms * TYPE_MS + 0.5 };
             w = w.merge_at(Wake::at(now, t.min(self.type_end())), now);
         } else if now < self.rows_end() {
             return Wake::Frame;
@@ -648,12 +638,7 @@ impl View for TipView {
         let k = 1.12;
         let r = self.extent_local();
         let tx = Self::TAIL_X;
-        Rect::new(
-            self.frame.x + tx + k * (r.x - tx),
-            self.frame.y - 4.0,
-            r.w * k,
-            r.h * k + 8.0,
-        )
+        Rect::new(self.frame.x + tx + k * (r.x - tx), self.frame.y - 4.0, r.w * k, r.h * k + 8.0)
     }
 }
 
@@ -788,7 +773,9 @@ mod tests {
         let r = h.damage.take();
         assert!(!r.is_empty());
         let tl = v.to_win(v.title_rect(), 1.0, v.float_q(t));
-        let wide_ok = r.iter().all(|d| (d.h as f32) <= (tl.h + 4.0) * crate::S + 4.0 || v.float_q(t) != v.float_q(t - 1.0));
+        let wide_ok = r
+            .iter()
+            .all(|d| (d.h as f32) <= (tl.h + 4.0) * crate::S + 4.0 || v.float_q(t) != v.float_q(t - 1.0));
         assert!(wide_ok, "{r:?} vs {tl:?}");
         // fully settled + float between level changes: no damage at all
         place(&mut h, &mut v, B + 2400.0);
@@ -855,7 +842,9 @@ mod tests {
 
     fn snap(name: &str, since: Ms, hover_never: bool) {
         let mut h = Harness::new();
-        h.env.shortcut_keys.push(("done", vec!["Meta".into(), "Alt".into(), "D".into()]));
+        h.env
+            .shortcut_keys
+            .push(("done", vec!["Meta".into(), "Alt".into(), "D".into()]));
         let mut v = TipView::new();
         v.set_shown(true, B);
         let now = B + since;

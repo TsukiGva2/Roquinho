@@ -71,13 +71,25 @@ impl KeyEvent {
 /// An input event.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Event {
-    PointerMove { pos: Point },
+    PointerMove {
+        pos: Point,
+    },
     PointerLeave,
     /// `clicks` is 1 for a single press, 2 for a double-click.
-    PointerDown { pos: Point, button: Button, clicks: u8 },
-    PointerUp { pos: Point, button: Button },
+    PointerDown {
+        pos: Point,
+        button: Button,
+        clicks: u8,
+    },
+    PointerUp {
+        pos: Point,
+        button: Button,
+    },
     /// `dy` in pixels, positive = scroll content down.
-    Wheel { pos: Point, dy: f32 },
+    Wheel {
+        pos: Point,
+        dy: f32,
+    },
     Key(KeyEvent),
     FocusIn,
     FocusOut,

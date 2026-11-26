@@ -11,7 +11,7 @@ use crate::widgets::{
 };
 use foco_base::model::fmt_clock;
 use foco_base::{
-    pet_event, path_circle, theme, Action, Anim, Easing, Event, Fill, Ms, PetKind, Rect, Seq, Surface, TextStyle, Wake,
+    path_circle, pet_event, theme, Action, Anim, Easing, Event, Fill, Ms, PetKind, Rect, Seq, Surface, TextStyle, Wake,
     Weight,
 };
 use std::f32::consts::PI;
@@ -155,8 +155,14 @@ impl CollapsedView {
             idx: 0,
             cycle: 0,
             cycle_at: None,
-            swap_op: Seq::new(1.0).to(0.0, SWAP_OUT_MS, Easing::Linear).to(1.0, 220.0, Easing::Linear).pause(40.0),
-            swap_y: Seq::new(0.0).to(-7.0, SWAP_OUT_MS, Easing::InCubic).set(7.0).to(0.0, 260.0, Easing::OutCubic),
+            swap_op: Seq::new(1.0)
+                .to(0.0, SWAP_OUT_MS, Easing::Linear)
+                .to(1.0, 220.0, Easing::Linear)
+                .pause(40.0),
+            swap_y: Seq::new(0.0)
+                .to(-7.0, SWAP_OUT_MS, Easing::InCubic)
+                .set(7.0)
+                .to(0.0, 260.0, Easing::OutCubic),
             swap_switch_at: None,
             swap_shown: (1.0, 0.0),
             title: String::new(),
@@ -235,7 +241,15 @@ impl CollapsedView {
     fn compute_implicit(&self) -> f32 {
         if self.has_focus {
             let badge = if self.n_focus > 1 { self.badge_w + 8.0 } else { 0.0 };
-            (14.0 + PET_SIZE + 9.0 + self.title_w.min(TITLE_MAX_W) + badge + 22.0 + self.controls_w() + self.timer_w + 16.0)
+            (14.0
+                + PET_SIZE
+                + 9.0
+                + self.title_w.min(TITLE_MAX_W)
+                + badge
+                + 22.0
+                + self.controls_w()
+                + self.timer_w
+                + 16.0)
                 .max(250.0)
         } else if self.hovered {
             226.0
@@ -271,14 +285,16 @@ impl CollapsedView {
 
     fn damage_timer(&self, cx: &mut Cx, old_w: f32) {
         let w = old_w.max(self.timer_w) + 2.0;
-        cx.damage.add(Rect::new(self.frame.right() - 16.0 - w, self.frame.y, w, self.frame.h));
+        cx.damage
+            .add(Rect::new(self.frame.right() - 16.0 - w, self.frame.y, w, self.frame.h));
     }
 
     /// Everything right of the pet: the part that the swap animation moves and fades.
     fn damage_content(&self, cx: &mut Cx) {
         let f = self.frame;
         let x = f.x + PET_X + PET_SIZE;
-        cx.damage.add(Rect::new(x, f.y, (f.right() - x).max(0.0), f.h).inflate(2.0, 2.0));
+        cx.damage
+            .add(Rect::new(x, f.y, (f.right() - x).max(0.0), f.h).inflate(2.0, 2.0));
     }
 
     fn refresh_model(&mut self, cx: &mut Cx) {
@@ -310,7 +326,8 @@ impl CollapsedView {
             }
             let badge = if n_focus > 1 { format!("{}/{}", idx + 1, n_focus) } else { String::new() };
             if badge != self.badge {
-                self.badge_w = if badge.is_empty() { 0.0 } else { pill_width(cx.text, &badge, &pill_style(theme::TEXT, true)) };
+                self.badge_w =
+                    if badge.is_empty() { 0.0 } else { pill_width(cx.text, &badge, &pill_style(theme::TEXT, true)) };
                 self.badge = badge;
                 changed = true;
             }
@@ -400,7 +417,10 @@ impl View for CollapsedView {
 
         // swap animation (opacity + slide of everything right of the pet)
         let (so, sy) = (self.swap_op.value(now), self.swap_y.value(now));
-        if (so - self.swap_shown.0).abs() >= 1.0 / 255.0 || (sy - self.swap_shown.1).abs() >= 0.05 || (switched && visible) {
+        if (so - self.swap_shown.0).abs() >= 1.0 / 255.0
+            || (sy - self.swap_shown.1).abs() >= 0.05
+            || (switched && visible)
+        {
             self.swap_shown = (so, sy);
             self.damage_content(cx);
         }
@@ -498,7 +518,10 @@ impl View for CollapsedView {
         if b.clicked {
             cx.msgs.push(crate::cx::Msg::Act(Action::Complete(idx)));
         }
-        [a.handled, b.handled].into_iter().max_by_key(|h| *h as u8).unwrap_or(Handled::No)
+        [a.handled, b.handled]
+            .into_iter()
+            .max_by_key(|h| *h as u8)
+            .unwrap_or(Handled::No)
     }
 
     fn paint(&mut self, s: &mut dyn Surface, pc: &PaintCx) {
@@ -616,14 +639,18 @@ impl View for CollapsedView {
             w = w.merge_at(Wake::at(now, t), now);
         }
         if self.controls_visible(now) {
-            w = w.merge_at(self.pause_btn.next_wake(now), now).merge_at(self.done_btn.next_wake(now), now);
+            w = w
+                .merge_at(self.pause_btn.next_wake(now), now)
+                .merge_at(self.done_btn.next_wake(now), now);
         }
         w
     }
 
     fn bounds(&self) -> Rect {
         let pr = self.pet_rect();
-        self.frame.union(&pr.inflate(self.pet.overdraw(), self.pet.overdraw())).inflate(2.0, 2.0)
+        self.frame
+            .union(&pr.inflate(self.pet.overdraw(), self.pet.overdraw()))
+            .inflate(2.0, 2.0)
     }
 }
 
@@ -703,7 +730,9 @@ mod tests {
         h.rev += 1;
         step(&mut h, &mut v, 1001.0);
         let badge_w = 3.0 * 5.5 + 12.0; // "1/2" at 10 px
-        assert!((v.implicit_width() - (14.0 + 26.0 + 9.0 + title_w + badge_w + 8.0 + 22.0 + timer_w + 16.0)).abs() < 0.01);
+        assert!(
+            (v.implicit_width() - (14.0 + 26.0 + 9.0 + title_w + badge_w + 8.0 + 22.0 + timer_w + 16.0)).abs() < 0.01
+        );
     }
 
     #[test]
@@ -969,7 +998,12 @@ mod tests {
     fn snapshots_wave3a() {
         snapshot("collapsed-1task.png", &["Escrever o relatório trimestral"], false, false);
         snapshot("collapsed-2tasks.png", &["Escrever o relatório trimestral", "Responder e-mails"], false, false);
-        snapshot("collapsed-2tasks-midswap.png", &["Escrever o relatório trimestral", "Responder e-mails"], true, false);
+        snapshot(
+            "collapsed-2tasks-midswap.png",
+            &["Escrever o relatório trimestral", "Responder e-mails"],
+            true,
+            false,
+        );
         snapshot("collapsed-2tasks-hover.png", &["Escrever o relatório trimestral", "Responder e-mails"], false, true);
     }
 }

@@ -1,7 +1,7 @@
 //! `Toggle.qml`: macOS-style switch, 38x22.
 
 use super::mouse::MouseArea;
-use crate::cx::{Cx, CursorShape, PaintCx};
+use crate::cx::{CursorShape, Cx, PaintCx};
 use foco_base::{path_circle, theme, Anim, Easing, Event, Fill, Ms, Rect, Surface, Wake};
 
 pub const W: f32 = 38.0;
@@ -47,7 +47,8 @@ impl Toggle {
         if self.checked != checked {
             self.checked = checked;
             self.on.animate_to(checked as u8 as f32, 180.0, Easing::Linear, cx.now);
-            self.knob.animate_to(knob_x(checked), 240.0, Easing::OutBack { overshoot: 1.6 }, cx.now);
+            self.knob
+                .animate_to(knob_x(checked), 240.0, Easing::OutBack { overshoot: 1.6 }, cx.now);
         }
         let cur = (self.on.value(cx.now), self.knob.value(cx.now));
         if (cur.0 - self.shown.0).abs() >= 1.0 / 255.0 || (cur.1 - self.shown.1).abs() >= 0.05 {

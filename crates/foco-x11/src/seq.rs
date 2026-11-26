@@ -163,20 +163,13 @@ fn keysym_for_char(c: char) -> Option<(u32, String)> {
     let is_upper_l1 = (0xc0..=0xde).contains(&cp) && cp != 0xd7;
     let is_lower_l1 = (0xdf..=0xff).contains(&cp) && cp != 0xf7;
     if c.is_ascii_alphabetic() {
-        return Some((
-            c.to_ascii_lowercase() as u32,
-            c.to_ascii_uppercase().to_string(),
-        ));
+        return Some((c.to_ascii_lowercase() as u32, c.to_ascii_uppercase().to_string()));
     }
     if is_upper_l1 {
         return Some((cp + 0x20, c.to_string()));
     }
     if is_lower_l1 {
-        let up = if cp == 0xdf || cp == 0xff {
-            c
-        } else {
-            char::from_u32(cp - 0x20)?
-        };
+        let up = if cp == 0xdf || cp == 0xff { c } else { char::from_u32(cp - 0x20)? };
         return Some((cp, up.to_string()));
     }
     if (0x20..=0x7e).contains(&cp) || (0xa0..=0xff).contains(&cp) {

@@ -7,7 +7,7 @@
 //! Damage: header on hover/rotation; a row on hover; the whole section when its height changes.
 //! Wake: `Frame` only while the chevron rotates (or the restore button animates), else `Idle`.
 
-use crate::cx::{Cx, CursorShape, Handled, Msg, PaintCx};
+use crate::cx::{CursorShape, Cx, Handled, Msg, PaintCx};
 use crate::model::done_today;
 use crate::view::{Section, View};
 use crate::widgets::{paint_icon, paint_text_centered, Icon, IconButton, MouseArea};
@@ -147,7 +147,8 @@ impl DoneSection {
         match self.hover_row.filter(|&i| i < self.rows.len()) {
             Some(i) => {
                 let r = self.row_rect(i);
-                self.restore.layout(cx, Rect::new(r.right() - 4.0 - 26.0, r.y + (ROW_H - 26.0) * 0.5, 26.0, 26.0));
+                self.restore
+                    .layout(cx, Rect::new(r.right() - 4.0 - 26.0, r.y + (ROW_H - 26.0) * 0.5, 26.0, 26.0));
                 self.restore_row = Some(i);
             }
             None => {
@@ -204,7 +205,8 @@ impl View for DoneSection {
         let c = self.chevron.value(cx.now);
         if (c - self.shown_chev).abs() >= 0.5 {
             self.shown_chev = c;
-            cx.damage.add(Rect::new(self.frame.x, self.frame.y, self.w.min(200.0), HEADER_H));
+            cx.damage
+                .add(Rect::new(self.frame.x, self.frame.y, self.w.min(200.0), HEADER_H));
         }
         self.restore.tick(cx);
     }
@@ -253,11 +255,13 @@ impl View for DoneSection {
             cx.cursor = CursorShape::Hand;
         }
         if out.changed && was != self.head.hovered() {
-            cx.damage.add(Rect::new(self.frame.x, self.frame.y, self.w.min(200.0), HEADER_H));
+            cx.damage
+                .add(Rect::new(self.frame.x, self.frame.y, self.w.min(200.0), HEADER_H));
         }
         if out.clicked {
             self.open = !self.open;
-            self.chevron.animate_to(if self.open { 180.0 } else { 0.0 }, 220.0, Easing::OutCubic, cx.now);
+            self.chevron
+                .animate_to(if self.open { 180.0 } else { 0.0 }, 220.0, Easing::OutCubic, cx.now);
             self.dirty = true;
             if !self.open {
                 self.set_hover_row(cx, None);

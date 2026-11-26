@@ -34,7 +34,11 @@ pub struct Transition {
 
 impl Transition {
     fn max_dur(&self) -> Ms {
-        [self.opacity, self.scale, self.x].iter().flatten().map(|t| t.dur).fold(0.0, f64::max)
+        [self.opacity, self.scale, self.x]
+            .iter()
+            .flatten()
+            .map(|t| t.dur)
+            .fold(0.0, f64::max)
     }
 }
 
@@ -155,7 +159,12 @@ impl<T: Clone> KeyedList<T> {
     /// and play `remove`; live rows whose slot moved animate y (`displaced`, or `move_displaced`
     /// while `dragging.is_some()`). The dragged row's own y is not animated. Returns true when
     /// anything changed (structure or slots).
-    pub fn sync<'k>(&mut self, items: impl Iterator<Item = (&'k str, T, f32)>, now: Ms, dragging: Option<&str>) -> bool {
+    pub fn sync<'k>(
+        &mut self,
+        items: impl Iterator<Item = (&'k str, T, f32)>,
+        now: Ms,
+        dragging: Option<&str>,
+    ) -> bool {
         let first = !self.primed;
         self.primed = true;
         let mut changed = false;
@@ -252,7 +261,10 @@ impl<T: Clone> KeyedList<T> {
     }
 
     pub fn get(&self, key: &str, now: Ms) -> Option<(&Entry<T>, Fx)> {
-        self.entries.iter().find(|e| e.index.is_some() && e.key == key).map(|e| (e, e.fx(now)))
+        self.entries
+            .iter()
+            .find(|e| e.index.is_some() && e.key == key)
+            .map(|e| (e, e.fx(now)))
     }
 
     /// Bounding rect of every row now (rows `w` wide at `x`, `row_h(data)` tall; slot y relative to
@@ -314,7 +326,10 @@ mod tests {
         l.sync(items(&["a", "b", "c"]).into_iter(), 0.0, None);
         l.sync(vec![("a", 0, 0.0), ("c", 2, 42.0)].into_iter(), 100.0, None);
         assert_eq!(l.live_len(), 2);
-        let keys: Vec<_> = l.iter(150.0).map(|(e, fx)| (e.key.clone(), e.index, fx.opacity < 1.0)).collect();
+        let keys: Vec<_> = l
+            .iter(150.0)
+            .map(|(e, fx)| (e.key.clone(), e.index, fx.opacity < 1.0))
+            .collect();
         assert_eq!(keys.len(), 3);
         assert_eq!(keys[2].0, "b");
         assert_eq!(keys[2].1, None);

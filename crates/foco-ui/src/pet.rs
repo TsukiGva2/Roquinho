@@ -4,7 +4,7 @@
 //! `foco_pet::Pet`); [`NullPet`] is a flat placeholder for tests. Dynamic dispatch
 //! costs nothing next to a pet paint, and it keeps every view constructor argument-free.
 
-use foco_base::{path_circle, Color, Fill, Ms, Mood, PetKind, Rect, Surface, Wake};
+use foco_base::{path_circle, Color, Fill, Mood, Ms, PetKind, Rect, Surface, Wake};
 
 /// What a view needs from a mascot. `now` is monotonic ms.
 pub trait PetLike {

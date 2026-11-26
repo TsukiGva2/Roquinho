@@ -9,10 +9,7 @@ pub fn monitor_name(edid: &[u8]) -> Option<String> {
         let d = &edid[off..off + 18];
         if d[0] == 0 && d[1] == 0 && d[2] == 0 && d[3] == 0xfc {
             let txt = &d[5..18];
-            let end = txt
-                .iter()
-                .position(|&b| b == b'\n' || b == 0)
-                .unwrap_or(txt.len());
+            let end = txt.iter().position(|&b| b == b'\n' || b == 0).unwrap_or(txt.len());
             let s: String = txt[..end].iter().map(|&b| b as char).collect();
             let s = s.trim().to_string();
             if !s.is_empty() {

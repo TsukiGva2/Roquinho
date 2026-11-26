@@ -79,7 +79,8 @@ impl GlyphCache {
 
     /// Cached glyph (rasterised on first use). `size64` = pixel size * 64, `px`/`py` = phase in quarters.
     pub fn get(&mut self, fonts: &mut Fonts, slot: Slot, gid: u16, size64: u32, px: u8, py: u8) -> (GlyphMeta, u32) {
-        let key = (slot as u64) << 40 | (gid as u64) << 24 | (size64.min(0xFFFF) as u64) << 8 | (px as u64) << 4 | py as u64;
+        let key =
+            (slot as u64) << 40 | (gid as u64) << 24 | (size64.min(0xFFFF) as u64) << 8 | (px as u64) << 4 | py as u64;
         if let Some(&i) = self.map.get(&key) {
             return (self.metas[i as usize], i);
         }
@@ -152,7 +153,8 @@ impl Builder {
     }
     fn finish(&mut self) {
         if self.open {
-            self.r.draw_line(point(self.last.0, self.last.1), point(self.start.0, self.start.1));
+            self.r
+                .draw_line(point(self.last.0, self.last.1), point(self.start.0, self.start.1));
             self.open = false;
         }
     }
@@ -173,12 +175,14 @@ impl ttf::OutlineBuilder for Builder {
     }
     fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
         let (c, p) = (self.p(x1, y1), self.p(x, y));
-        self.r.draw_quad(point(self.last.0, self.last.1), point(c.0, c.1), point(p.0, p.1));
+        self.r
+            .draw_quad(point(self.last.0, self.last.1), point(c.0, c.1), point(p.0, p.1));
         self.last = p;
     }
     fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
         let (c1, c2, p) = (self.p(x1, y1), self.p(x2, y2), self.p(x, y));
-        self.r.draw_cubic(point(self.last.0, self.last.1), point(c1.0, c1.1), point(c2.0, c2.1), point(p.0, p.1));
+        self.r
+            .draw_cubic(point(self.last.0, self.last.1), point(c1.0, c1.1), point(c2.0, c2.1), point(p.0, p.1));
         self.last = p;
     }
     fn close(&mut self) {
@@ -256,7 +260,17 @@ pub fn blit(
 
 /// Fills a solid rectangle (used for strike-through lines) with the same blend as `blit`.
 #[allow(clippy::too_many_arguments)]
-pub fn blit_rect_cov(dst: &mut [u8], dw: i32, dh: i32, rect: IRect, covx: &dyn Fn(i32) -> u8, covy: &dyn Fn(i32) -> u8, clip: IRect, mask: Option<&[u8]>, color: [u8; 4]) {
+pub fn blit_rect_cov(
+    dst: &mut [u8],
+    dw: i32,
+    dh: i32,
+    rect: IRect,
+    covx: &dyn Fn(i32) -> u8,
+    covy: &dyn Fn(i32) -> u8,
+    clip: IRect,
+    mask: Option<&[u8]>,
+    color: [u8; 4],
+) {
     let Some(r) = rect.intersect(&clip) else { return };
     let Some(r) = r.intersect(&IRect::new(0, 0, dw, dh)) else { return };
     let [cb, cg, cr, ca] = color.map(|v| v as u32);

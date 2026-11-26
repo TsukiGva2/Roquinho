@@ -2,13 +2,13 @@
 //! focus, Esc clears first and then collapses, a shake on an empty submit, key hints while
 //! focused.
 
+use crate::cx::CursorShape;
 use crate::cx::{Cx, FocusId, Handled, Msg, PaintCx};
 use crate::view::{Section, View};
 use crate::widgets::{
     paint_chip, paint_icon, paint_text_centered, text_top_for_center, ColorAnim, Icon, InputOutcome, MouseArea,
     TextInput,
 };
-use crate::cx::CursorShape;
 use foco_base::{
     theme, Action, AppCmd, Color, Easing, Event, Fill, Ms, Point, Rect, Seq, Surface, TextStyle, Wake, Weight,
 };
@@ -143,11 +143,8 @@ impl InputField {
         if self.lh == 0.0 {
             self.lh = cx.text.line_height(&input_style());
         }
-        let right = if self.hint_vis {
-            self.frame.right() - 12.0 - self.hint_w - 12.0
-        } else {
-            self.frame.right() - 12.0
-        };
+        let right =
+            if self.hint_vis { self.frame.right() - 12.0 - self.hint_w - 12.0 } else { self.frame.right() - 12.0 };
         let x = self.frame.x + INPUT_X;
         let r = Rect::new(x, self.frame.y + (FIELD_H - self.lh) * 0.5, (right - x).max(0.0), self.lh);
         self.input.layout(cx, r);
@@ -209,10 +206,13 @@ impl View for InputField {
             self.hint_vis = hv;
             self.relayout_input(cx);
         }
-        self.bg.animate_to(if active { theme::CARD_HOVER } else { theme::CARD }, 160.0, now);
-        self.border.animate_to(if active { cx.env.accent.with_alpha(0.75) } else { theme::STROKE }, 160.0, now);
+        self.bg
+            .animate_to(if active { theme::CARD_HOVER } else { theme::CARD }, 160.0, now);
+        self.border
+            .animate_to(if active { cx.env.accent.with_alpha(0.75) } else { theme::STROKE }, 160.0, now);
         let plus_on = active || !self.input.is_empty();
-        self.plus.animate_to(if plus_on { cx.env.accent } else { theme::FILL }, 180.0, now);
+        self.plus
+            .animate_to(if plus_on { cx.env.accent } else { theme::FILL }, 180.0, now);
         self.input.tick(cx, active);
         let cur = self.current(now);
         if cur != self.shown {
@@ -224,7 +224,8 @@ impl View for InputField {
     fn layout(&mut self, cx: &mut Cx, frame: Rect) {
         let f = Rect::new(frame.x, frame.y, frame.w, FIELD_H);
         if f != self.frame {
-            cx.damage.add_moved(self.frame.inflate(SHAKE_PAD, 0.0), f.inflate(SHAKE_PAD, 0.0));
+            cx.damage
+                .add_moved(self.frame.inflate(SHAKE_PAD, 0.0), f.inflate(SHAKE_PAD, 0.0));
             self.frame = f;
             self.plus_ma.rect = self.plus_rect();
         }
@@ -251,10 +252,7 @@ impl View for InputField {
                     Handled::No
                 }
             }
-            Event::PointerMove { .. }
-            | Event::PointerLeave
-            | Event::PointerDown { .. }
-            | Event::PointerUp { .. } => {
+            Event::PointerMove { .. } | Event::PointerLeave | Event::PointerDown { .. } | Event::PointerUp { .. } => {
                 // the whole field moves with the shake
                 let sx = self.shake_x(cx.now);
                 let ev = shifted(ev, -sx);
@@ -308,7 +306,8 @@ impl View for InputField {
         paint_icon(s, Icon::Plus, pr.center(), 14.0, Color::WHITE, 2.2);
 
         // text, caret, placeholder
-        self.input.paint(s, pc, active, pc.env.accent.with_alpha(0.6), Some(Color::WHITE));
+        self.input
+            .paint(s, pc, active, pc.env.accent.with_alpha(0.6), Some(Color::WHITE));
         if self.input.is_empty() {
             let ir = self.input.rect();
             let st = TextStyle::new(13.0, Weight::Regular, theme::TEXT3);

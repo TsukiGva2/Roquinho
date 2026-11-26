@@ -1,7 +1,7 @@
 //! Derived-state helpers over the store (`Store.qml` derived properties and deadlines).
 
 use crate::cx::StoreRead;
-use foco_base::{start_of_day_epoch, Ms, Mood, Task};
+use foco_base::{start_of_day_epoch, Mood, Ms, Task};
 
 /// Slack added to computed tick deadlines so the wake lands after the second flips.
 const TICK_SLACK_MS: Ms = 2.0;

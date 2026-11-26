@@ -7,13 +7,11 @@
 //! Wake/damage: clocks wake exactly when the displayed second flips (`model::next_tick`) and only
 //! while the section is visible; a tick damages the clock row and the ring of that card only.
 
-use crate::cx::{Cx, CursorShape, Handled, Msg, PaintCx};
+use crate::cx::{CursorShape, Cx, Handled, Msg, PaintCx};
 use crate::model;
 use crate::pet::{new_pet, PetLike};
 use crate::view::{Section, View};
-use crate::widgets::{
-    paint_icon, ColorAnim, Hover, Icon, IconButton, KeyedList, ListSpec, MouseArea,
-};
+use crate::widgets::{paint_icon, ColorAnim, Hover, Icon, IconButton, KeyedList, ListSpec, MouseArea};
 use foco_base::{
     path_arc, path_circle, path_rrect, theme, Action, Anim, Color, Easing, Event, Fill, Ms, PetKind, Point, Rect,
     Surface, TextStyle, Wake, Weight,
@@ -342,16 +340,13 @@ impl FocusSection {
     }
 
     fn list_bounds(&self, now: Ms) -> Rect {
-        self.list.bounds(now, self.frame.x, self.frame.w, |_| CARD_H).translate(0.0, self.frame.y)
+        self.list
+            .bounds(now, self.frame.x, self.frame.w, |_| CARD_H)
+            .translate(0.0, self.frame.y)
     }
 
     fn start_rect(&self) -> Rect {
-        Rect::new(
-            self.frame.right() - 14.0 - self.start_w,
-            self.frame.y + (EMPTY_H - 32.0) * 0.5,
-            self.start_w,
-            32.0,
-        )
+        Rect::new(self.frame.right() - 14.0 - self.start_w, self.frame.y + (EMPTY_H - 32.0) * 0.5, self.start_w, 32.0)
     }
 
     fn pet_rect(&self) -> Rect {
@@ -405,7 +400,12 @@ impl FocusSection {
                 st.focus.iter().enumerate().map(|(i, t)| {
                     (
                         t.tid.as_str(),
-                        CardData { title: t.title.clone(), acc_ms: t.acc_ms, started_at: t.started_at, running: t.running },
+                        CardData {
+                            title: t.title.clone(),
+                            acc_ms: t.acc_ms,
+                            started_at: t.started_at,
+                            running: t.running,
+                        },
                         i as f32 * (CARD_H + GAP),
                     )
                 }),
@@ -418,7 +418,9 @@ impl FocusSection {
             for t in &st.focus {
                 match self.cards.iter_mut().find(|c| c.tid == t.tid) {
                     Some(c) => c.live = true,
-                    None => self.cards.push(CardUi::new(&t.tid, cx.env.accent, cx.env.accent_text(), t.running)),
+                    None => self
+                        .cards
+                        .push(CardUi::new(&t.tid, cx.env.accent, cx.env.accent_text(), t.running)),
                 }
             }
             for t in &st.focus {
@@ -492,11 +494,15 @@ impl View for FocusSection {
                 continue;
             }
             c.bg.animate_to(if c.hover.get() { theme::CARD_HOVER } else { theme::CARD }, 140.0, now);
-            c.border.animate_to(if c.running { accent.with_alpha(0.38) } else { theme::STROKE }, 240.0, now);
+            c.border
+                .animate_to(if c.running { accent.with_alpha(0.38) } else { theme::STROKE }, 240.0, now);
             c.grad.animate_to(c.running as u8 as f32, 300.0, Easing::Linear, now);
-            c.ring_bg.animate_to(if c.ring.hovered() { theme::FILL } else { Color::TRANSPARENT }, 140.0, now);
-            c.timer_col.animate_to(if c.running { accent_text } else { theme::TEXT2 }, 200.0, now);
-            c.undo_op.animate_to(if c.hover.get() { 1.0 } else { 0.0 }, 160.0, Easing::Linear, now);
+            c.ring_bg
+                .animate_to(if c.ring.hovered() { theme::FILL } else { Color::TRANSPARENT }, 140.0, now);
+            c.timer_col
+                .animate_to(if c.running { accent_text } else { theme::TEXT2 }, 200.0, now);
+            c.undo_op
+                .animate_to(if c.hover.get() { 1.0 } else { 0.0 }, 160.0, Easing::Linear, now);
             c.undo.tick(cx);
             c.check.tick(cx);
             let sig = c.sig(now);
@@ -557,13 +563,22 @@ impl View for FocusSection {
             }
             let avail = (self.frame.w - 66.0 - 12.0 - if sub_src { self.start_w + 14.0 } else { 0.0 }).max(0.0);
             if self.sub_w != avail {
-                let s = if sub_src { "Puxa a próxima da fila ou inventa uma nova." } else { "Escreve aí embaixo. Faça você mesmo." };
+                let s = if sub_src {
+                    "Puxa a próxima da fila ou inventa uma nova."
+                } else {
+                    "Escreve aí embaixo. Faça você mesmo."
+                };
                 self.sub_el = cx.text.elide(s, &empty_sub_style(), avail);
                 self.sub_w = avail;
                 cx.damage.add(self.frame);
             }
             let hov = self.start_ma.hovered();
-            self.start_sc.animate_to(if self.start_ma.pressed_inside() { 0.94 } else { 1.0 }, 120.0, Easing::Linear, now);
+            self.start_sc.animate_to(
+                if self.start_ma.pressed_inside() { 0.94 } else { 1.0 },
+                120.0,
+                Easing::Linear,
+                now,
+            );
             let shown = (self.start_sc.value(now), hov);
             if shown != self.start_shown {
                 self.start_shown = shown;
@@ -733,7 +748,8 @@ impl View for FocusSection {
 
     fn bounds(&self) -> Rect {
         if self.n == 0 {
-            self.frame.union(&self.pet_rect().inflate(self.pet.overdraw(), self.pet.overdraw()))
+            self.frame
+                .union(&self.pet_rect().inflate(self.pet.overdraw(), self.pet.overdraw()))
         } else {
             self.list_bounds_now()
         }

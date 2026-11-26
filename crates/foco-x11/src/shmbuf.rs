@@ -14,29 +14,14 @@ pub struct ShmBuf {
 impl ShmBuf {
     /// Creates the segment; returns the mapping and the fd to give to the server.
     pub fn new(len: usize) -> Result<(ShmBuf, OwnedFd), String> {
-        let fd = memfd_create("foco-max-shm", MemfdFlags::CLOEXEC)
-            .map_err(|e| format!("memfd_create: {e}"))?;
+        let fd = memfd_create("foco-max-shm", MemfdFlags::CLOEXEC).map_err(|e| format!("memfd_create: {e}"))?;
         ftruncate(&fd, len as u64).map_err(|e| format!("ftruncate: {e}"))?;
         // SAFETY: fresh anonymous mapping of a memfd we own, length checked by ftruncate; the
         // mapping outlives all slices handed out (freed in Drop).
-        let ptr = unsafe {
-            mmap(
-                std::ptr::null_mut(),
-                len,
-                ProtFlags::READ | ProtFlags::WRITE,
-                MapFlags::SHARED,
-                &fd,
-                0,
-            )
-        }
-        .map_err(|e| format!("mmap: {e}"))?;
-        Ok((
-            ShmBuf {
-                ptr: ptr.cast(),
-                len,
-            },
-            fd,
-        ))
+        let ptr =
+            unsafe { mmap(std::ptr::null_mut(), len, ProtFlags::READ | ProtFlags::WRITE, MapFlags::SHARED, &fd, 0) }
+                .map_err(|e| format!("mmap: {e}"))?;
+        Ok((ShmBuf { ptr: ptr.cast(), len }, fd))
     }
 
     pub fn as_mut_slice(&mut self) -> &mut [u8] {

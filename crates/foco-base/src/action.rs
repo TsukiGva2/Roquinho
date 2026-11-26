@@ -11,9 +11,15 @@ use crate::color::Color;
 pub enum Action {
     /// `addTask(title, toFocus)`; empty/blank titles are ignored. Goes to focus when
     /// `to_focus`, or when `autoAdvance` is on and nothing is in focus.
-    AddTask { title: String, to_focus: bool },
+    AddTask {
+        title: String,
+        to_focus: bool,
+    },
     /// `focusFromQueue(i, silent)`: queue[i] starts running in focus.
-    FocusFromQueue { index: usize, silent: bool },
+    FocusFromQueue {
+        index: usize,
+        silent: bool,
+    },
     /// `togglePause(i)` on a focus task.
     TogglePause(usize),
     /// `toggleAll()`: pause everything if anything runs, else resume everything.
@@ -27,9 +33,15 @@ pub enum Action {
     /// `removeQueue(i)`.
     RemoveQueue(usize),
     /// `renameQueue(i, title)`.
-    RenameQueue { index: usize, title: String },
+    RenameQueue {
+        index: usize,
+        title: String,
+    },
     /// `moveQueue(from, to)`.
-    MoveQueue { from: usize, to: usize },
+    MoveQueue {
+        from: usize,
+        to: usize,
+    },
     /// `restoreDone(i)`: done[i] goes back to the front of the queue; `totalDone` decrements.
     RestoreDone(usize),
     /// `petKind` ("cat" | "ghost" | "slime").

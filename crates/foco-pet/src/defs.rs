@@ -84,7 +84,9 @@ const fn one(m: &'static [Mv]) -> Step {
     Step::Par(m)
 }
 
-use Easing::{InOutQuad as IOQ, InOutSine as IOS, InQuad as IQ, Linear as LIN, OutCubic as OC, OutQuad as OQ, OutSine as OS};
+use Easing::{
+    InOutQuad as IOQ, InOutSine as IOS, InQuad as IQ, Linear as LIN, OutCubic as OC, OutQuad as OQ, OutSine as OS,
+};
 const OB: Easing = Easing::OUT_BACK;
 
 // run ids (index into DEFS)
@@ -177,11 +179,7 @@ pub static DEFS: [Def; NRUN] = [
     },
     // stretchAnim
     Def {
-        steps: &[
-            one(&[mv(Squash, -0.1, 600.0, OS)]),
-            Step::Pause(350.0),
-            one(&[mv(Squash, 0.0, 450.0, OB)]),
-        ],
+        steps: &[one(&[mv(Squash, -0.1, 600.0, OS)]), Step::Pause(350.0), one(&[mv(Squash, 0.0, 450.0, OB)])],
         loops: 1,
         fin: &[],
     },
@@ -211,11 +209,7 @@ pub static DEFS: [Def; NRUN] = [
         fin: &[],
     },
     // nodAnim (loops: 2)
-    Def {
-        steps: &[one(&[mv(FaceDy, 1.3, 140.0, OQ)]), one(&[mv(FaceDy, 0.0, 180.0, IOQ)])],
-        loops: 2,
-        fin: &[],
-    },
+    Def { steps: &[one(&[mv(FaceDy, 1.3, 140.0, OQ)]), one(&[mv(FaceDy, 0.0, 180.0, IOQ)])], loops: 2, fin: &[] },
     // earAnim
     Def {
         steps: &[
@@ -256,11 +250,7 @@ pub static DEFS: [Def; NRUN] = [
     // notesAnim
     Def { steps: &[one(&[mvf(NotesT, 0.0, 1.0, 2400.0, LIN)])], loops: 1, fin: &[] },
     // blinkAnim
-    Def {
-        steps: &[one(&[mv(Blink, 0.1, 70.0, LIN)]), one(&[mv(Blink, 1.0, 110.0, LIN)])],
-        loops: 1,
-        fin: &[],
-    },
+    Def { steps: &[one(&[mv(Blink, 0.1, 70.0, LIN)]), one(&[mv(Blink, 1.0, 110.0, LIN)])], loops: 1, fin: &[] },
     // doubleBlink
     Def {
         steps: &[

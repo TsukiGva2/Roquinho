@@ -75,7 +75,13 @@ impl TextEngine {
         let (px, ls) = (st.px.to_bits(), st.letter_spacing.to_bits());
         let idx = hash(s, px, ls, st.weight, st.tabular, fonts.style as u8);
         if let Some(e) = &self.cache[idx] {
-            if e.px == px && e.ls == ls && e.w == st.weight && e.tab == st.tabular && e.style == fonts.style && &*e.text == s {
+            if e.px == px
+                && e.ls == ls
+                && e.w == st.weight
+                && e.tab == st.tabular
+                && e.style == fonts.style
+                && &*e.text == s
+            {
                 self.hits += 1;
                 return e.layout.clone();
             }

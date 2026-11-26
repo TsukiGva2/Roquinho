@@ -8,7 +8,7 @@
 //! ring's growth, an exact `At` for the ring's 600 ms pause and for the 170 ms appear delay,
 //! `Idle` otherwise. Damage: the ball's own circle (grown to the ring's radius while it shows).
 
-use crate::cx::{Cx, CursorShape, Handled, Msg, PaintCx};
+use crate::cx::{CursorShape, Cx, Handled, Msg, PaintCx};
 use crate::view::View;
 use crate::widgets::ColorAnim;
 use foco_base::{path_circle, Action, Anim, Button, Color, Easing, Event, Fill, Ms, Point, Rect, Surface, Wake};
@@ -169,7 +169,8 @@ impl View for DotView {
         let was_ring_vis = self.shown_ring.1 > 0.0;
         let changed = (scale - self.shown_scale).abs() >= 0.002
             || tone != self.shown_tone
-            || (ring_vis || was_ring_vis) && (ring.0 != self.shown_ring.0 || (ring.1 - self.shown_ring.1).abs() >= 1.0 / 255.0);
+            || (ring_vis || was_ring_vis)
+                && (ring.0 != self.shown_ring.0 || (ring.1 - self.shown_ring.1).abs() >= 1.0 / 255.0);
         if changed {
             let old = self.extent(self.shown_scale, self.shown_ring.0, was_ring_vis);
             let new = self.extent(scale, ring.0, ring_vis);
@@ -256,7 +257,11 @@ impl View for DotView {
             if let Some(p) = &self.ring {
                 s.save();
                 s.scale(rs, rs);
-                s.stroke_path(p, &Fill::Solid(self.ring_tone.mul_alpha(ro)), &Stroke { width: 1.5, ..Stroke::default() });
+                s.stroke_path(
+                    p,
+                    &Fill::Solid(self.ring_tone.mul_alpha(ro)),
+                    &Stroke { width: 1.5, ..Stroke::default() },
+                );
                 s.restore();
             }
         }
@@ -328,7 +333,13 @@ mod tests {
     }
 
     fn running(h: &mut Harness) {
-        h.store.state.focus.push(Task { tid: "a".into(), title: "a".into(), running: true, started_at: h.epoch as i64, ..Task::default() });
+        h.store.state.focus.push(Task {
+            tid: "a".into(),
+            title: "a".into(),
+            running: true,
+            started_at: h.epoch as i64,
+            ..Task::default()
+        });
         h.rev += 1;
     }
 
@@ -350,7 +361,9 @@ mod tests {
         step(&mut h, &mut v, b + 300.0);
         assert!(!h.damage.is_empty());
         // OutBack 2.4 overshoots
-        let peak = (0..42).map(|i| v.scale.value(b + 170.0 + i as f64 * 10.0)).fold(0.0f32, f32::max);
+        let peak = (0..42)
+            .map(|i| v.scale.value(b + 170.0 + i as f64 * 10.0))
+            .fold(0.0f32, f32::max);
         assert!(peak > 1.15, "{peak}");
         step(&mut h, &mut v, b + 700.0);
         assert_eq!(v.scale.value(b + 700.0), 1.0);

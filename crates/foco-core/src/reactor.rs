@@ -83,10 +83,8 @@ impl Reactor {
         let timer = timerfd_create(TimerfdClockId::Monotonic, TimerfdFlags::CLOEXEC | TimerfdFlags::NONBLOCK)
             .map_err(io_err)?;
         let sigfd = make_signalfd()?;
-        epoll::add(&epfd, &timer, epoll::EventData::new_u64(TIMER_TOKEN), epoll::EventFlags::IN)
-            .map_err(io_err)?;
-        epoll::add(&epfd, &sigfd, epoll::EventData::new_u64(SIGNAL_TOKEN), epoll::EventFlags::IN)
-            .map_err(io_err)?;
+        epoll::add(&epfd, &timer, epoll::EventData::new_u64(TIMER_TOKEN), epoll::EventFlags::IN).map_err(io_err)?;
+        epoll::add(&epfd, &sigfd, epoll::EventData::new_u64(SIGNAL_TOKEN), epoll::EventFlags::IN).map_err(io_err)?;
         Ok(Reactor { epfd, timer, sigfd, armed: None, events: Vec::with_capacity(16) })
     }
 

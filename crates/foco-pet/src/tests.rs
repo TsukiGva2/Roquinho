@@ -69,7 +69,11 @@ fn sheet(size: f32, cell: u32, name: &str) -> PixSurface {
         for (i, (name, at)) in REACTIONS.into_iter().enumerate() {
             let c = MOODS.len() + i;
             let pet = react_pet(kind, name, at, 7, size);
-            pet.paint(&mut surf, Rect::new(c as f32 * cell as f32 + off, r as f32 * cell as f32 + off, size, size), 0.0);
+            pet.paint(
+                &mut surf,
+                Rect::new(c as f32 * cell as f32 + off, r as f32 * cell as f32 + off, size, size),
+                0.0,
+            );
         }
     }
     surf.save_png(out_dir().join(name)).unwrap();

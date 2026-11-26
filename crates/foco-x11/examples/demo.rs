@@ -23,11 +23,7 @@ fn rss_kb() -> String {
                     .find(|l| l.starts_with(k))
                     .map(|l| l.split_whitespace().nth(1).unwrap_or("?").to_string())
             };
-            Some(format!(
-                "VmRSS={} kB VmHWM={} kB",
-                pick("VmRSS:")?,
-                pick("VmHWM:")?
-            ))
+            Some(format!("VmRSS={} kB VmHWM={} kB", pick("VmRSS:")?, pick("VmHWM:")?))
         })
         .unwrap_or_default()
 }
@@ -35,13 +31,7 @@ fn rss_kb() -> String {
 fn draw(buf: &mut [u8], rect: IRect) {
     buf.fill(0);
     let mut pm = PixmapMut::from_bytes(buf, W as u32, H as u32).expect("pixmap");
-    let (x, y, w, h, r) = (
-        rect.x as f32,
-        rect.y as f32,
-        rect.w as f32,
-        rect.h as f32,
-        16.0f32,
-    );
+    let (x, y, w, h, r) = (rect.x as f32, rect.y as f32, rect.w as f32, rect.h as f32, 16.0f32);
     let mut pb = PathBuilder::new();
     pb.move_to(x, y);
     pb.line_to(x + w, y);
@@ -54,13 +44,7 @@ fn draw(buf: &mut [u8], rect: IRect) {
     let mut paint = Paint::default();
     paint.set_color(Color::from_rgba8(0, 0, 0, 255));
     paint.anti_alias = true;
-    pm.fill_path(
-        &path,
-        &paint,
-        FillRule::Winding,
-        Transform::identity(),
-        None,
-    );
+    pm.fill_path(&path, &paint, FillRule::Winding, Transform::identity(), None);
     // an orange dot; tiny-skia writes R,G,B,A bytes but the buffer is B,G,R,A, so R and B are
     // swapped here on purpose (foco-gfx must do the same swap)
     let mut pb = PathBuilder::new();
@@ -72,10 +56,7 @@ fn draw(buf: &mut [u8], rect: IRect) {
 
 fn main() {
     let t0 = Instant::now();
-    let secs: f64 = std::env::args()
-        .nth(1)
-        .and_then(|a| a.parse().ok())
-        .unwrap_or(5.0);
+    let secs: f64 = std::env::args().nth(1).and_then(|a| a.parse().ok()).unwrap_or(5.0);
     let mut x = X11::connect().expect("connect");
     println!("connect: {} us", t0.elapsed().as_micros());
     let mons = x.monitors();
@@ -89,11 +70,7 @@ fn main() {
         .expect("monitor")
         .clone();
     x.create_window(W, H).expect("create_window");
-    println!(
-        "window 0x{:x} created: {} us",
-        x.window_id(),
-        t0.elapsed().as_micros()
-    );
+    println!("window 0x{:x} created: {} us", x.window_id(), t0.elapsed().as_micros());
     let nx = target.x + (target.w - W as i32) / 2;
     x.place(nx, target.y);
     let notch = IRect::new((W as i32 - 300) / 2, 0, 300, 40);
@@ -113,10 +90,7 @@ fn main() {
         }
         if !x.has_buffered() {
             let left = end - now;
-            let ts = rustix::fs::Timespec {
-                tv_sec: left.as_secs() as _,
-                tv_nsec: left.subsec_nanos() as _,
-            };
+            let ts = rustix::fs::Timespec { tv_sec: left.as_secs() as _, tv_nsec: left.subsec_nanos() as _ };
             let fd = unsafe { BorrowedFd::borrow_raw(x.fd()) };
             let mut fds = [PollFd::new(&fd, PollFlags::IN)];
             let _ = poll(&mut fds, Some(&ts));
@@ -127,11 +101,7 @@ fn main() {
             match ev {
                 XEvent::PresentDone if !first_done => {
                     first_done = true;
-                    println!(
-                        "first ShmCompletion {} us after start; {}",
-                        t0.elapsed().as_micros(),
-                        rss_kb()
-                    );
+                    println!("first ShmCompletion {} us after start; {}", t0.elapsed().as_micros(), rss_kb());
                     // keymap compilation is deferred until now, off the path to the first frame
                     let g = x.grab_shortcuts(&[
                         ("demo".to_string(), "Meta+Alt+F12".to_string()),
@@ -143,12 +113,8 @@ fn main() {
                         x.request_keyboard_focus(true);
                     }
                 }
-                XEvent::Expose if !x.present_pending() => {
-                    x.present(&[IRect::new(0, 0, W as i32, H as i32)])
-                }
-                XEvent::Input(foco_base::event::Event::Key(k))
-                    if k.key == foco_base::event::Key::Escape =>
-                {
+                XEvent::Expose if !x.present_pending() => x.present(&[IRect::new(0, 0, W as i32, H as i32)]),
+                XEvent::Input(foco_base::event::Event::Key(k)) if k.key == foco_base::event::Key::Escape => {
                     x.release_keyboard_focus();
                 }
                 _ => {}

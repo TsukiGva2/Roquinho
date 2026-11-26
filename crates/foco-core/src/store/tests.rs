@@ -290,10 +290,7 @@ fn restore_done() {
     assert!(fx.contains(&Effect::ModelChanged));
     assert!(s.apply(A::RestoreDone(0), NOW).is_empty());
     // totalDone never goes negative (state loaded with done items but totalDone 0)
-    let mut s = Store::from_json_at(
-        r#"{"totalDone":0,"done":[{"tid":"d","title":"d","doneAt":5,"spentMs":1}]}"#,
-        NOW,
-    );
+    let mut s = Store::from_json_at(r#"{"totalDone":0,"done":[{"tid":"d","title":"d","doneAt":5,"spentMs":1}]}"#, NOW);
     s.apply(A::RestoreDone(0), NOW);
     assert_eq!(s.total_done(), 0);
 }
@@ -567,7 +564,9 @@ fn running_timers_count_only_up_to_last_seen() {
         {{"tid":"r","title":"r","accMs":1000,"startedAt":{},"running":true}},
         {{"tid":"p","title":"p","accMs":2000,"startedAt":0,"running":false}}],
         "queue":[{{"tid":"q","title":"q","accMs":5,"startedAt":{},"running":true}}]}}"#,
-        last_seen as i64, started as i64, (NOW - 1000.0) as i64
+        last_seen as i64,
+        started as i64,
+        (NOW - 1000.0) as i64
     );
     let s = Store::from_json_at(&j, NOW);
     let r = &s.focus()[0];
@@ -650,7 +649,10 @@ fn save_roundtrips_and_leaves_no_temp_files() {
     add(&mut s, "dois ç", false, NOW);
     s.apply(A::Complete(0), NOW + 5000.0);
     s.save_at(&p, NOW + 6000.0).unwrap();
-    let names: Vec<_> = fs::read_dir(p.parent().unwrap()).unwrap().map(|e| e.unwrap().file_name()).collect();
+    let names: Vec<_> = fs::read_dir(p.parent().unwrap())
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
     assert_eq!(names.len(), 1, "{names:?}");
     let t = NOW + 7000.0;
     let back = Store::load_at(&p, t);

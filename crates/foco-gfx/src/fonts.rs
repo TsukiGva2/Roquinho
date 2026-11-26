@@ -80,14 +80,7 @@ pub fn map_file(path: &str) -> Option<&'static [u8]> {
     // lives for 'static. (A concurrent truncation of a system font file would be a system
     // problem, not a memory-safety contract we can enforce.)
     let mapped = unsafe {
-        rustix::mm::mmap(
-            std::ptr::null_mut(),
-            len,
-            rustix::mm::ProtFlags::READ,
-            rustix::mm::MapFlags::PRIVATE,
-            &f,
-            0,
-        )
+        rustix::mm::mmap(std::ptr::null_mut(), len, rustix::mm::ProtFlags::READ, rustix::mm::MapFlags::PRIVATE, &f, 0)
     };
     match mapped {
         Ok(p) => Some(unsafe { std::slice::from_raw_parts(p as *const u8, len) }),
@@ -258,7 +251,8 @@ impl Face {
     pub fn tabular_digits(&mut self) -> Option<[u16; 10]> {
         if self.tab.is_none() {
             const NAMES: [&str; 10] = [
-                "zero.tf", "one.tf", "two.tf", "three.tf", "four.tf", "five.tf", "six.tf", "seven.tf", "eight.tf", "nine.tf",
+                "zero.tf", "one.tf", "two.tf", "three.tf", "four.tf", "five.tf", "six.tf", "seven.tf", "eight.tf",
+                "nine.tf",
             ];
             let mut out = [0u16; 10];
             let mut ok = true;
@@ -312,8 +306,12 @@ impl Fonts {
     /// Fallback faces tried (in order) after the primary one.
     pub fn fallbacks(&self) -> &'static [Slot] {
         match self.style {
-            FontStyle::QtDefault => &[Slot::NotoSymbols, Slot::NotoSymbols2, Slot::NotoMath, Slot::InterRegular, Slot::DejaVu],
-            FontStyle::Inter => &[Slot::NotoRegular, Slot::NotoSymbols, Slot::NotoSymbols2, Slot::NotoMath, Slot::DejaVu],
+            FontStyle::QtDefault => {
+                &[Slot::NotoSymbols, Slot::NotoSymbols2, Slot::NotoMath, Slot::InterRegular, Slot::DejaVu]
+            }
+            FontStyle::Inter => {
+                &[Slot::NotoRegular, Slot::NotoSymbols, Slot::NotoSymbols2, Slot::NotoMath, Slot::DejaVu]
+            }
         }
     }
 }

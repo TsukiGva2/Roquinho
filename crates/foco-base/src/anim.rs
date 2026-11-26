@@ -18,10 +18,17 @@ pub enum Easing {
     OutSine,
     InOutSine,
     /// `easing.overshoot`, Qt default 1.70158 (see [`Easing::OUT_BACK`]).
-    OutBack { overshoot: f32 },
-    InBack { overshoot: f32 },
+    OutBack {
+        overshoot: f32,
+    },
+    InBack {
+        overshoot: f32,
+    },
     /// `easing.amplitude` / `easing.period`, Qt defaults 1.0 / 0.3 (see [`Easing::OUT_ELASTIC`]).
-    OutElastic { amplitude: f32, period: f32 },
+    OutElastic {
+        amplitude: f32,
+        period: f32,
+    },
     OutExpo,
     InOutQuart,
 }
@@ -452,9 +459,18 @@ mod tests {
     #[test]
     fn easing_monotonic_where_expected() {
         let mono = [
-            Easing::Linear, Easing::InQuad, Easing::OutQuad, Easing::InOutQuad, Easing::InCubic,
-            Easing::OutCubic, Easing::InOutCubic, Easing::InSine, Easing::OutSine, Easing::InOutSine,
-            Easing::OutExpo, Easing::InOutQuart,
+            Easing::Linear,
+            Easing::InQuad,
+            Easing::OutQuad,
+            Easing::InOutQuad,
+            Easing::InCubic,
+            Easing::OutCubic,
+            Easing::InOutCubic,
+            Easing::InSine,
+            Easing::OutSine,
+            Easing::InOutSine,
+            Easing::OutExpo,
+            Easing::InOutQuart,
         ];
         for e in mono {
             let mut prev = -1.0;
@@ -513,7 +529,10 @@ mod tests {
 
     #[test]
     fn seq_pulse_loops() {
-        let mut s = Seq::new(1.0).to(0.25, 900.0, Easing::InOutSine).to(1.0, 900.0, Easing::InOutSine).looping();
+        let mut s = Seq::new(1.0)
+            .to(0.25, 900.0, Easing::InOutSine)
+            .to(1.0, 900.0, Easing::InOutSine)
+            .looping();
         assert_eq!(s.value(0.0), 1.0);
         s.start(0.0);
         assert!((s.value(900.0) - 0.25).abs() < 1e-5);
