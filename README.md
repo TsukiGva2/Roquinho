@@ -1,4 +1,5 @@
 <p align="center">
+  <a href="https://github.com/TsukiGva2/Roquinho/actions/workflows/ci.yml"><img src="https://github.com/TsukiGva2/Roquinho/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/Rust-1.97-dea584?logo=rust&logoColor=black" alt="Rust 1.97">
   <img src="https://img.shields.io/badge/X11-DOCK-f28834?logo=x.org&logoColor=white" alt="X11">
   <img src="https://img.shields.io/badge/render-tiny--skia_·_CPU-5c5c5c" alt="tiny-skia, renderização por CPU">
@@ -14,6 +15,11 @@
   Ele fica pendurado no topo da tela e deixa <b>o que você está fazendo agora</b> sempre à vista:
   registra uma demanda em dois segundos, mostra o cronômetro correndo e, quando você termina,
   a próxima da fila já entra sozinha. Tudo com um mascotinho torcendo por você.
+</p>
+
+<p align="center">
+  <img src="docs/media/roquinho.gif" alt="Roquinho rodando: abrir o painel, registrar demandas, focar, concluir, trocar o mascote e esconder numa bolinha" width="560"><br>
+  <sub>O Roquinho de verdade, gravado num X virtual. <a href="docs/media/roquinho.mp4">Ver em vídeo (MP4)</a>.</sub>
 </p>
 
 ---
@@ -50,6 +56,15 @@ só no notch de foco.
 
 > Como o formato do `state.json`, o `foco-maxrc` e o nome do binário são os mesmos, as duas versões não devem
 > rodar ao mesmo tempo (compartilham o socket de instância única).
+
+### 📸 Telas
+
+<table>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/media/painel.png" alt="Painel aberto com uma demanda em foco e a fila"></td>
+    <td width="50%" valign="top"><img src="docs/media/ajustes.png" alt="Ajustes: mascote, comportamento e monitor"></td>
+  </tr>
+</table>
 
 ---
 
