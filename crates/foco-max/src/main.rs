@@ -3,13 +3,12 @@
 
 #[macro_use]
 mod trace;
-mod app;
 
-use app::{App, AppInit, PlatformReq};
 use foco_base::event::Event;
 use foco_base::{epoch_ms, mono_ms, parse_command, split_line, AppCmd, IRect, Ms, Point};
 use foco_core::reactor::Ready;
 use foco_core::{autostart, cli, ipc, paths, rc, Rc, Reactor, Store};
+use foco_max::app::{App, AppInit, PlatformReq};
 use foco_ui::{CursorShape, S, WIN_DEV};
 use foco_x11::{Cursor as X11Cursor, XEvent, X11};
 use std::path::PathBuf;

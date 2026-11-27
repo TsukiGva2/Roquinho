@@ -21,6 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     # Arch matches the dev machine; fonts are resolved through fontconfig.
     container: archlinux:latest
+    env:
+      # Must match the `gungraun` version in the workspace Cargo.toml (library and runner are versioned together).
+      GUNGRAUN_RUNNER_VERSION: "0.20.0"
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
     steps:
       - name: Install system packages
         # rustup provides the toolchain pinned in rust-toolchain.toml (installed below), so the
@@ -28,10 +32,11 @@ jobs:
         # the fonts (text metrics) and the xkb data + X11 Compose tables (keyboard tests); none of
         # them needs an X server. fontconfig (headers + .pc) is needed to link foco-gfx.
         # The archlinux image's pacman.conf has a NoExtract rule that drops every X11 locale
-        # except en_US, but the keyboard test composes dead keys for pt_BR.UTF-8.
+        # except en_US, but the keyboard test composes dead keys for pt_BR.UTF-8. valgrind is for
+        # the PR bench steps below.
         run: |
           sed -i '/^NoExtract/d' /etc/pacman.conf
-          pacman -Syu --noconfirm --needed rustup gcc pkgconf fontconfig libxkbcommon git \
+          pacman -Syu --noconfirm --needed rustup gcc pkgconf fontconfig libxkbcommon git valgrind \
             noto-fonts inter-font ttf-dejavu xkeyboard-config libx11
 
       - uses: actions/checkout@v4
@@ -42,6 +47,7 @@ jobs:
       - name: Install pinned Rust toolchain
         run: rustup toolchain install
 
+      # Also caches ~/.cargo/bin, so gungraun-runner below is built once per version.
       - uses: Swatinem/rust-cache@v2
 
       - name: Format
@@ -55,3 +61,33 @@ jobs:
 
       - name: Doctests
         run: cargo test --workspace --doc
+
+      # Instruction counts (valgrind, so they hold on noisy runners) of the frame pipeline, base vs
+      # head of the PR: fails if a scenario in crates/foco-max/benches/frames.rs gets more than 5%
+      # costlier. Last, because it checks out the base commit.
+      - name: Install gungraun-runner
+        if: github.event_name == 'pull_request'
+        run: cargo install gungraun-runner --version "$GUNGRAUN_RUNNER_VERSION" --locked
+
+      # gungraun counts nothing from a stripped binary, so [profile.bench] keeps the symbols (see Cargo.toml).
+      - name: Bench base
+        if: github.event_name == 'pull_request'
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          echo "HEAD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          # A baseline restored from the cache must not be mistaken for this PR's base.
+          rm -rf target/gungraun
+          git fetch --depth=1 origin "$BASE_SHA"
+          git checkout --force --detach "$BASE_SHA"
+          if [ -f crates/foco-max/benches/frames.rs ]; then
+            cargo bench -p foco-max --bench frames -- --save-baseline=base
+          else
+            echo "::notice::base $BASE_SHA has no crates/foco-max/benches/frames.rs: skipping the comparison"
+          fi
+
+      # Without a saved baseline gungraun just records the run, so this also covers a base without the bench.
+      - name: Bench head
+        if: github.event_name == 'pull_request'
+        run: |
+          git checkout --force --detach "$HEAD_SHA"
+          cargo bench -p foco-max --bench frames -- --baseline=base --callgrind-limits='ir=5%'

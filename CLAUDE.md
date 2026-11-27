@@ -13,6 +13,9 @@ Portuguese (user-facing); code, comments and docs are English.
   instance), `make restart`, `make stop`.
 - Single crate / test: `cargo test -p foco-ui views::queue`. Needs no X server.
 - Ignored perf tests (release only): `cargo test --release -p foco-pet -- --ignored --nocapture`, same with `-p foco-gfx`.
+- Frame cost in instructions (valgrind + `cargo install gungraun-runner --version 0.20.0 --locked`): `cargo bench -p foco-max
+  --bench frames`; to fail on a >5% regression, run it with `-- --save-baseline=base` on the old tree, then
+  `-- --baseline=base --callgrind-limits='ir=5%'` on the new one (what CI's bench steps do on PRs).
 - Headless render: `foco-max --snapshot <state.json> <out.png> [collapsed|expanded|settings|alert|tip|dot]`.
 - Runtime env: `FOCO_TRACE=1` (stderr event trace), `FOCO_FONT=inter`. `.cargo/config.toml` builds with
   `target-cpu=native`, so release binaries are not portable.
@@ -105,6 +108,8 @@ foco-max -> everything          app.rs (scene), main.rs (startup + frame loop), 
   call `mono_ms`/`epoch_ms` or sleep inside logic under test. Use `TempDir` (`fsutil::testutil`) for files.
 - Every bug fix ships with a regression test that fails without the fix.
 - Perf/bench tests are `#[ignore]` with a reason; don't make them part of `make test`.
+- `crates/foco-max/tests/` holds budget tests (wakes, damaged px, heap) that drive the real `App` under a fake clock; each
+  budget is a const whose doc comment has the measured value. Raise one only with a reason, not to make a test pass.
 
 ## Git
 - Small, focused commits; one logical change each. `target/` is ignored; never commit build output, PNGs from tests, or

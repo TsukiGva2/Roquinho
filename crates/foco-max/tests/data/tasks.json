@@ -1,0 +1,69 @@
+{
+ "version": 1,
+ "lastSeen": 1795521600000,
+ "settings": {
+  "petKind": "cat",
+  "petName": "Foquinho",
+  "autoAdvance": true,
+  "hidden": false,
+  "tipsEnabled": false,
+  "lastTipDay": "2026-11-24",
+  "musicEnabled": true
+ },
+ "totalDone": 2,
+ "focus": [],
+ "queue": [
+  {
+   "tid": "t1",
+   "title": "Escrever o relatório mensal",
+   "accMs": 754000,
+   "startedAt": 0,
+   "running": false,
+   "createdAt": 1795500000000,
+   "doneAt": 0,
+   "spentMs": 0
+  },
+  {
+   "tid": "t2",
+   "title": "Revisar o pull request do parser",
+   "accMs": 0,
+   "startedAt": 0,
+   "running": false,
+   "createdAt": 1795510000000,
+   "doneAt": 0,
+   "spentMs": 0
+  },
+  {
+   "tid": "t3",
+   "title": "Responder e-mails da semana",
+   "accMs": 61000,
+   "startedAt": 0,
+   "running": false,
+   "createdAt": 1795520000000,
+   "doneAt": 0,
+   "spentMs": 0
+  }
+ ],
+ "done": [
+  {
+   "tid": "t4",
+   "title": "Planejar a sprint",
+   "accMs": 0,
+   "startedAt": 0,
+   "running": false,
+   "createdAt": 1795400000000,
+   "doneAt": 1795518000000,
+   "spentMs": 1500000
+  },
+  {
+   "tid": "t5",
+   "title": "Organizar a mesa",
+   "accMs": 0,
+   "startedAt": 0,
+   "running": false,
+   "createdAt": 1795400000000,
+   "doneAt": 1795519000000,
+   "spentMs": 600000
+  }
+ ]
+}

@@ -7,7 +7,6 @@ use foco_base::{Color, Mood, Ms, PetKind, Rect, StateFile, Surface, Wake};
 use foco_core::Store;
 use foco_pet::Pet;
 use std::cell::Cell;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 impl StoreRead for Store {
     fn state(&self) -> &StateFile {
@@ -29,13 +28,27 @@ pub struct RealPet {
     applied: f32,
 }
 
-static SEED: AtomicU64 = AtomicU64::new(0x9E37_79B9);
+thread_local! {
+    /// Source of the blink/fidget/quip seeds; per thread so tests do not share it (the app is single-threaded).
+    static SEED: Cell<u64> = const { Cell::new(0x9E37_79B9) };
+}
+
+/// Restarts the seed sequence from the wall clock at launch. The clock is injected (not read here) so that a
+/// headless run with a fixed epoch replays the same blinks, which the instruction-count bench relies on.
+pub fn seed_from_epoch(epoch: f64) {
+    SEED.set(epoch.to_bits());
+}
+
+/// A fresh seed for a pet or a view; every call differs.
+pub fn next_seed() -> u64 {
+    let seed = SEED.get().wrapping_add(0x1234_5679);
+    SEED.set(seed);
+    seed
+}
 
 impl RealPet {
     pub fn new() -> RealPet {
-        let n = SEED.fetch_add(0x1234_5679, Ordering::Relaxed);
-        let seed = n ^ foco_base::epoch_ms().to_bits() ^ (std::process::id() as u64) << 20;
-        RealPet { pet: Pet::new(PetKind::Cat, seed), size: Cell::new(32.0), applied: 32.0 }
+        RealPet { pet: Pet::new(PetKind::Cat, next_seed()), size: Cell::new(32.0), applied: 32.0 }
     }
 }
 
@@ -106,5 +119,21 @@ impl PetLike for RealPet {
     }
     fn pointer(&mut self, fx: f32, fy: f32, now: Ms) {
         self.pet.pointer(fx, fy, now);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn same_epoch_same_seeds() {
+        seed_from_epoch(1_795_521_600_000.0);
+        let a = [next_seed(), next_seed()];
+        seed_from_epoch(1_795_521_600_000.0);
+        assert_eq!(a, [next_seed(), next_seed()]);
+        assert_ne!(a[0], a[1], "each pet gets its own seed");
+        seed_from_epoch(1_795_521_600_001.0);
+        assert_ne!(a[0], next_seed(), "another launch time gives other seeds");
     }
 }

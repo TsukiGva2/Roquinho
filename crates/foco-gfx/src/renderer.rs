@@ -3,7 +3,7 @@
 use foco_base::{IRect, TextStyle};
 use tiny_skia::PixmapMut;
 
-use crate::canvas::Canvas;
+use crate::canvas::{Canvas, SeenKeys};
 use crate::fonts::{FontStyle, Fonts};
 use crate::glyphs::GlyphCache;
 use crate::shadow::ShadowCache;
@@ -13,7 +13,7 @@ use crate::Engine;
 /// Owns fonts, caches and the scratch pixmap.
 pub struct Renderer {
     pub(crate) eng: Engine,
-    scratch: Vec<u8>,
+    pub(crate) scratch: Vec<u8>,
 }
 
 impl Default for Renderer {
@@ -40,10 +40,18 @@ impl Renderer {
                 glyphs: GlyphCache::new(),
                 text: TextEngine::default(),
                 sprites: std::collections::HashMap::new(),
+                sprite_bytes: 0,
+                seen: SeenKeys::new(),
                 shadows: ShadowCache::new(),
             },
             scratch: Vec::new(),
         }
+    }
+
+    /// Frees the scratch buffer behind partial-width damage rects; the next such frame reallocates
+    /// it. The panel's tall rects grow it to ~2 MB, which nothing else needs.
+    pub fn release_scratch(&mut self) {
+        self.scratch = Vec::new();
     }
 
     /// Switches the UI font family (layout caches are keyed by style, glyph caches by face).

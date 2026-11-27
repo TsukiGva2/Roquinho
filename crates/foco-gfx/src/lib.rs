@@ -31,6 +31,10 @@ pub(crate) struct Engine {
     pub shadows: shadow::ShadowCache,
     /// Rasterised `Surface::cached` pictures.
     pub sprites: std::collections::HashMap<canvas::SpriteKey, tiny_skia::Pixmap>,
+    /// Sum of the pixel bytes in `sprites`.
+    pub sprite_bytes: usize,
+    /// Keys drawn once and not yet cached.
+    pub seen: canvas::SeenKeys,
 }
 
 #[cfg(test)]

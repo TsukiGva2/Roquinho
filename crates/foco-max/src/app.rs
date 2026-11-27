@@ -26,30 +26,37 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlatformReq {
     /// Window position in root coordinates.
-    Place {
-        x: i32,
-        y: i32,
-    },
+    Place { x: i32, y: i32 },
     /// `XShape` input region, window-local device px.
     SetInputRegion(Vec<IRect>),
+    /// Ask the window manager for keyboard focus (docks are not focused on click).
     RequestKeyboardFocus,
+    /// Give keyboard focus back.
     ReleaseKeyboardFocus,
+    /// Ask for the clipboard text (answered with `Event::Paste`).
     RequestPaste,
+    /// Pointer cursor shape.
     SetCursor(CursorShape),
     /// Re-query `RandR` (the debounce elapsed).
     RefreshMonitors,
+    /// Quit the process.
     Exit,
 }
 
 /// Construction parameters.
 pub struct AppInit {
+    /// Loaded task state.
     pub store: Store,
+    /// Loaded `foco-maxrc`.
     pub rc: Rc,
     /// Write state.json / foco-maxrc / autostart files (false for `--snapshot`).
     pub persist: bool,
     pub state_path: PathBuf,
+    /// Path of this binary (autostart entry, spawned helpers).
     pub exe: PathBuf,
+    /// Connected screens (empty: no placement requests).
     pub monitors: Vec<Monitor>,
+    /// Whether the autostart entry exists.
     pub autostart: bool,
     /// Command line given when this instance was started (run 700 ms after launch, like Qt).
     pub initial_cmd: Option<String>,
@@ -146,6 +153,7 @@ macro_rules! cx {
     };
 }
 
+/// The scene: store, views, springs and renderer. Driven by the frame loop in `main.rs`.
 pub struct App {
     gfx: Renderer,
     store: Store,
@@ -190,6 +198,8 @@ pub struct App {
     geom: NotchGeom,
     shadow_op: f32,
     laid_out: bool,
+    /// The renderer scratch may hold the panel's large partial-width rects; see `render`.
+    scratch_grown: bool,
 
     collapsed: CollapsedView,
     alert_view: AlertView,
@@ -216,7 +226,9 @@ fn hex(c: Color) -> String {
 }
 
 impl App {
+    /// Builds the scene at `now` (monotonic) / `epoch` (wall clock), all damaged.
     pub fn new(init: AppInit, now: Ms, epoch: f64) -> App {
+        foco_ui::real::seed_from_epoch(epoch);
         let AppInit { store, rc, persist, state_path, exe, monitors, autostart, initial_cmd } = init;
         let accent_choice = rc.accent().and_then(Color::hex);
         let first_run = store.first_run();
@@ -251,6 +263,7 @@ impl App {
             booted: false,
             quitting: false,
             expanded: false,
+            scratch_grown: false,
             settings_open: false,
             quick_mode: false,
             expand_stamp: 0.0,
@@ -309,15 +322,19 @@ impl App {
     pub fn take_requests(&mut self) -> Vec<PlatformReq> {
         std::mem::take(&mut self.reqs)
     }
+    /// Whether any region waits to be repainted.
     pub fn has_damage(&self) -> bool {
         !self.damage.is_empty()
     }
+    /// Drains the damaged regions (device px).
     pub fn take_damage(&mut self) -> Vec<IRect> {
         self.damage.take()
     }
+    /// Marks the whole window damaged (Expose).
     pub fn damage_all(&mut self) {
         self.damage.add_all();
     }
+    /// Whether the notch has appeared yet (startup trace).
     pub fn first_notch_visible(&self) -> bool {
         self.geom.visible()
     }
@@ -507,6 +524,7 @@ impl App {
 
     // ---------------------------------------------------------------- commands
 
+    /// A grabbed global shortcut fired.
     pub fn on_shortcut(&mut self, id: &str, now: Ms, epoch: f64) {
         if let Some(c) = shortcut_command(id) {
             self.on_cmd(c, now, epoch);
@@ -533,6 +551,7 @@ impl App {
         self.env.rev += 1;
     }
 
+    /// Runs a command line / shortcut command (`open`, `focus <text>`, `hide`, ...).
     pub fn on_cmd(&mut self, cmd: AppCmd, now: Ms, epoch: f64) {
         self.exec_cmd(cmd, now, epoch);
         self.flush_msgs(now, epoch);
@@ -629,6 +648,7 @@ impl App {
         self.sched.schedule(T_SCREENS, now + SCREEN_DEBOUNCE_MS);
     }
 
+    /// New `RandR` layout: re-places the window.
     pub fn set_monitors(&mut self, monitors: Vec<Monitor>, now: Ms) {
         self.env.screens = screens_of(&monitors);
         self.env.rev += 1;
@@ -1264,6 +1284,14 @@ impl App {
                 dot.paint(c, &pc);
             });
         }
+        // The panel's tall partial-width rects grow the renderer scratch to ~2 MB. Hand it back
+        // once, after the closed notch has settled (it shrinks across those rects until then).
+        if self.expanded || self.expanded_view.visible(now) {
+            self.scratch_grown = true;
+        } else if self.scratch_grown && self.spr_w.settled() && self.spr_h.settled() {
+            self.gfx.release_scratch();
+            self.scratch_grown = false;
+        }
     }
 
     // ---------------------------------------------------------------- snapshot helpers
@@ -1382,5 +1410,34 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn scratch_is_released_once_after_the_panel_has_closed() {
+        let mut app = mk(STATE);
+        let mut buf = vec![0u8; WIN_DEV as usize * WIN_DEV as usize * 4];
+        let mut t = 0.0;
+        let mut frame = |app: &mut App, t: &mut Ms| {
+            app.tick(*t, EPOCH0 + *t);
+            let _ = app.take_requests();
+            let d = app.take_damage();
+            app.render(&mut buf, &d, *t, EPOCH0 + *t);
+            *t += 16.0;
+        };
+        while t < 1000.0 {
+            frame(&mut app, &mut t);
+        }
+        app.on_cmd(AppCmd::Open, t, EPOCH0 + t);
+        for _ in 0..60 {
+            frame(&mut app, &mut t);
+        }
+        assert!(app.scratch_grown, "the open panel did not mark the scratch");
+        app.on_cmd(AppCmd::Collapse, t, EPOCH0 + t);
+        frame(&mut app, &mut t);
+        assert!(app.scratch_grown, "released while the notch was still shrinking");
+        for _ in 0..120 {
+            frame(&mut app, &mut t);
+        }
+        assert!(!app.scratch_grown, "the scratch was never released after the panel closed");
     }
 }
