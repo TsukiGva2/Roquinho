@@ -11,12 +11,13 @@ static ALLOC: dhat::Alloc = dhat::Alloc;
 
 /// Open/close cycles between the idle stretches.
 const CYCLES: u32 = 8;
-/// Measured: 10.25 MB peak live heap (flat from the 6th to the 10th cycle), including the driver's 2.5 MB window
-/// buffer (shared memory in the real app, whose heaptrack peak is 9.7 MB). The sprite (4 MB) and glyph (2 MB) caps are
-/// guarded by the foco-gfx cache tests: a run this short does not reach them.
-const PEAK_BYTES: usize = 13_000_000;
-/// Measured: 5.4 MB live at the end, after the panel closed and the renderer scratch was released.
-const END_BYTES: usize = 7_000_000;
+/// Measured: 8.5 MB peak live heap, including the driver's 2.5 MB window buffer (shared memory in the real app, whose
+/// heaptrack peak is 9.7 MB). The sprite cache (2 MB cap; a pixmap only from a pose's second sighting) is full here
+/// and empties now and then; the glyph cache (2 MB) is guarded by the foco-gfx cache tests, a run this short does not
+/// reach its cap. Before the sprite admission rule and its smaller cap: 10.25 MB.
+const PEAK_BYTES: usize = 10_500_000;
+/// Measured: 3.3 MB live at the end, after the panel closed and the renderer scratch was released (5.4 MB before).
+const END_BYTES: usize = 4_000_000;
 
 #[test]
 fn heap_stays_within_budget() {

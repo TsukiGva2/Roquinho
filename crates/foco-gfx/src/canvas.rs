@@ -24,11 +24,44 @@ pub(crate) struct SpriteKey {
     fy: u8,
 }
 
-/// Bytes of cached pictures kept before the cache is emptied. Ambient pose animation keeps
-/// minting new poses, so the set never settles; measured (60 fps pet, one-shot poses included)
-/// the reuse distance of a hit is p99 1.6 MB collapsed and p90 3.8 MB with the panel open, and
-/// 4 MB empties the cache about every 24 s open (2 MB: every 9 s, hit rate 40% vs 52%).
-pub(crate) const SPRITE_BYTES: usize = 4 << 20;
+/// Remembers which sprite keys were drawn once, so that only a key seen twice earns a pixmap. The pet's poses are
+/// quantised but its ambient loops (breathing, tail, z's) have incommensurate periods, so their product is a few
+/// hundred poses that come back only every 13 s or so: most poses are drawn once, and a pixmap for each would be
+/// allocated, blitted once and cleared unused. A direct-mapped table of 32-bit tags: a collision just forgets the
+/// older key, which then needs two more sightings.
+pub(crate) struct SeenKeys(Box<[u32]>);
+
+/// Slots of [`SeenKeys`] (16 KB): ~700 distinct poses a minute with the panel open, so a few minutes of them.
+const SEEN_SLOTS: usize = 4096;
+
+impl SeenKeys {
+    pub(crate) fn new() -> SeenKeys {
+        SeenKeys(vec![0; SEEN_SLOTS].into_boxed_slice())
+    }
+
+    /// Whether `key` was recorded before; records it otherwise.
+    fn seen_before(&mut self, key: &SpriteKey) -> bool {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        key.hash(&mut h);
+        let h = h.finish();
+        let (slot, tag) = (h as usize % SEEN_SLOTS, (h >> 32) as u32);
+        let seen = self.0[slot] == tag;
+        self.0[slot] = tag;
+        seen
+    }
+
+    fn clear(&mut self) {
+        self.0.fill(0);
+    }
+}
+
+/// Bytes of cached pictures kept before the cache is emptied. Measured in the headless driver with the cache only
+/// admitting a key on its second sighting: 20 min collapsed (26 px pet, 5.8 KB sprites) needs 1.8 MB and hits 90%;
+/// the open panel (66 px, 34 KB sprites) never settles, its reuse distance exceeds any cap (2.6% hit at 2 MB, 9.5% at
+/// 4 MB, 1.5% at 1 MB); 20 x (30 s collapsed + 8 s open) hits 35.7% at 2 MB, the same as the old 4 MB cache that
+/// cached every pose (37.0%), with half the memory and a third of the pixmaps made. 1 MB loses 8 points (27.9%).
+pub(crate) const SPRITE_BYTES: usize = 2 << 20;
 
 #[derive(Clone)]
 struct State {
@@ -286,10 +319,22 @@ impl Surface for Canvas<'_> {
                 None => return,
                 Some(None) if pw > 0 && ph > 0 => {
                     let sk = SpriteKey { key, scale: sx.to_bits(), w: pw, h: ph, fx, fy };
-                    if !self.eng.sprites.contains_key(&sk) {
+                    let cached = self.eng.sprites.contains_key(&sk);
+                    // Under a fade the picture is composited as a whole, which only a sprite reproduces.
+                    if !cached && self.cur.opacity >= 1.0 && !self.eng.seen.seen_before(&sk) {
+                        // On the sprite's sub-pixel phase, so that the second sighting does not shift the picture
+                        // (at the exact phase ~30 edge values of a test blob differed by 2 to 14 levels from the sprite).
+                        self.cur.t =
+                            t.post_translate(f32::from(fx) / 16.0 - (dx - ix), f32::from(fy) / 16.0 - (dy - iy));
+                        draw(self);
+                        self.cur.t = t;
+                        return;
+                    }
+                    if !cached {
                         if self.eng.sprite_bytes + (pw * ph * 4) as usize > SPRITE_BYTES {
                             self.eng.sprites.clear();
                             self.eng.sprite_bytes = 0;
+                            self.eng.seen.clear();
                         }
                         if let Some(mut pm) = Pixmap::new(pw as u32, ph as u32) {
                             {

@@ -3,7 +3,7 @@
 use foco_base::{IRect, TextStyle};
 use tiny_skia::PixmapMut;
 
-use crate::canvas::Canvas;
+use crate::canvas::{Canvas, SeenKeys};
 use crate::fonts::{FontStyle, Fonts};
 use crate::glyphs::GlyphCache;
 use crate::shadow::ShadowCache;
@@ -41,6 +41,7 @@ impl Renderer {
                 text: TextEngine::default(),
                 sprites: std::collections::HashMap::new(),
                 sprite_bytes: 0,
+                seen: SeenKeys::new(),
                 shadows: ShadowCache::new(),
             },
             scratch: Vec::new(),

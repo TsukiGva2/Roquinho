@@ -598,16 +598,82 @@ fn sprite_cache_stays_under_its_cap_and_counts_its_bytes() {
     // 64x64 sprites (about 17 KB with the margin), all different keys: enough to overflow the cap twice
     let n = 2 * crate::canvas::SPRITE_BYTES / (66 * 66 * 4) + 1;
     for key in 0..n as u64 {
-        r.render(&mut buf, w, h, &[rect], &mut |c| {
-            c.cached(key, Rect::new(10.0, 10.0, 64.0, 64.0), &mut |s| {
-                s.fill_rrect(Rect::new(10.0, 10.0, 64.0, 64.0), 8.0, &Fill::Solid(Color::WHITE));
+        // a key is cached from its second sighting
+        for _ in 0..2 {
+            r.render(&mut buf, w, h, &[rect], &mut |c| {
+                c.cached(key, Rect::new(10.0, 10.0, 64.0, 64.0), &mut |s| {
+                    s.fill_rrect(Rect::new(10.0, 10.0, 64.0, 64.0), 8.0, &Fill::Solid(Color::WHITE));
+                });
             });
-        });
+        }
         let real: usize = r.eng.sprites.values().map(|p| p.data().len()).sum();
         assert_eq!(r.eng.sprite_bytes, real, "counter drifted at key {key}");
         assert!(real <= crate::canvas::SPRITE_BYTES, "{real} bytes cached at key {key}");
     }
     assert!(r.eng.sprites.len() < n, "the cache never emptied");
+}
+
+/// One frame of an anti-aliased blob drawn through `cached` at a fractional position (the caller's pose is the key).
+fn blob_frame(r: &mut Renderer, key: u64, opacity: f32) -> Vec<u8> {
+    full(120, 100, r, [20, 30, 50], &mut |c| {
+        c.translate(10.37, 7.61);
+        c.scale(S, S);
+        c.mul_opacity(opacity);
+        let bounds = Rect::new(0.0, 0.0, 64.0, 64.0);
+        c.cached(key, bounds, &mut |s| {
+            s.fill_rrect(Rect::new(3.3, 4.1, 50.0, 40.0), 14.0, &Fill::Solid(Color::rgb8(240, 200, 60)));
+            s.fill_rrect(Rect::new(20.0, 20.5, 30.0, 33.0), 9.0, &Fill::Solid(Color::rgba8(30, 160, 220, 200)));
+        });
+    })
+}
+
+#[test]
+fn a_pose_seen_once_makes_no_sprite() {
+    let mut r = Renderer::new();
+    blob_frame(&mut r, 1, 1.0);
+    assert_eq!((r.eng.sprites.len(), r.eng.sprite_bytes), (0, 0), "a one-shot pose was rasterised into a pixmap");
+    blob_frame(&mut r, 1, 1.0);
+    assert_eq!(r.eng.sprites.len(), 1, "the second sighting should have been cached");
+    let bytes = r.eng.sprite_bytes;
+    blob_frame(&mut r, 1, 1.0);
+    assert_eq!((r.eng.sprites.len(), r.eng.sprite_bytes), (1, bytes), "a hit must not add to the cache");
+}
+
+#[test]
+fn the_first_sighting_matches_the_sprite() {
+    let mut r = Renderer::new();
+    let direct = blob_frame(&mut r, 1, 1.0);
+    let cached = blob_frame(&mut r, 1, 1.0);
+    assert_eq!(r.eng.sprites.len(), 1);
+    let diffs = || direct.iter().zip(&cached).map(|(a, b)| a.abs_diff(*b));
+    let (worst, off) = (diffs().max().unwrap(), diffs().filter(|d| *d > 1).count());
+    // Measured: 1 level on 717 of 48k channel values, and two edge pixels of the curve at 11 and 14 (tiny-skia's
+    // coverage grid moves with the integer origin). Drawn at the exact phase instead, ~30 values differ by 2 to 14.
+    println!("direct vs sprite: max {worst} levels, {off} values off by more than 1");
+    assert!(worst <= 16 && off <= 4, "drawing straight and through the sprite differ: max {worst}, {off} values > 1");
+}
+
+#[test]
+fn a_fade_goes_through_the_sprite() {
+    // Per-primitive opacity would show the overlapping shapes through each other; the sprite fades as one picture.
+    let mut r = Renderer::new();
+    blob_frame(&mut r, 1, 0.5);
+    assert_eq!(r.eng.sprites.len(), 1, "a translucent first sighting must be composited as a sprite");
+}
+
+#[test]
+fn clearing_the_sprites_forgets_the_sightings() {
+    let mut r = Renderer::new();
+    // enough distinct poses, each seen twice, to overflow the cap
+    let n = 2 * crate::canvas::SPRITE_BYTES / (66 * 66 * 4) + 1;
+    for key in 0..n as u64 {
+        blob_frame(&mut r, key, 1.0);
+        blob_frame(&mut r, key, 1.0);
+    }
+    assert!(r.eng.sprites.len() < n, "the cache never emptied");
+    let kept = r.eng.sprites.len();
+    blob_frame(&mut r, 0, 1.0);
+    assert_eq!(r.eng.sprites.len(), kept, "an evicted pose was cached again on one sighting");
 }
 
 #[test]
