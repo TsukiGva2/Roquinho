@@ -27,3 +27,8 @@ tiny-skia = { workspace = true, features = ["png-format"] }
 
 [dev-dependencies]
 dhat.workspace = true
+gungraun.workspace = true
+
+[[bench]]
+name = "frames"
+harness = false
