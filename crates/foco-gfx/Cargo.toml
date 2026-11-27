@@ -11,6 +11,7 @@ workspace = true
 foco-base.workspace = true
 tiny-skia.workspace = true
 rustix = { workspace = true, features = ["mm"] }
+fontconfig.workspace = true
 ttf-parser = "0.25.1"
 ab_glyph_rasterizer = "0.1.8"
 
