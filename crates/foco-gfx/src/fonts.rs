@@ -1,9 +1,15 @@
 //! Lazily loaded, memory-mapped font faces (ttf-parser over mmapped files; nothing is read
 //! into a Vec and no glyph is parsed until it is needed).
 
+use std::cell::OnceCell;
 use std::collections::HashMap;
+use std::ffi::CString;
+use std::path::{Path, PathBuf};
 
 use foco_base::Weight;
+use fontconfig::{
+    Fontconfig, Pattern, FC_FAMILY, FC_WEIGHT, FC_WEIGHT_BOLD, FC_WEIGHT_MEDIUM, FC_WEIGHT_REGULAR, FC_WEIGHT_SEMIBOLD,
+};
 use ttf_parser as ttf;
 
 /// Which Latin family the UI text uses.
@@ -14,7 +20,7 @@ pub enum FontStyle {
     /// renders weights 500/600 with the Regular face and only 700 with the Bold face.
     #[default]
     QtDefault,
-    /// Inter (Regular / Medium / `SemiBold` / Bold from `Inter.ttc`).
+    /// Inter (Regular / Medium / `SemiBold` / Bold resolved through fontconfig).
     Inter,
 }
 
@@ -36,41 +42,72 @@ pub enum Slot {
 
 pub const SLOT_COUNT: usize = 10;
 
-const INTER_TTC: &str = "/usr/share/fonts/inter/Inter.ttc";
-
+/// What fontconfig is asked for: a family and a weight (always upright).
 struct SlotSpec {
-    /// Candidate files, first that exists wins.
-    paths: &'static [&'static str],
-    /// For collections: `(family, weight, index hint)`.
-    ttc: Option<(&'static str, u16, u32)>,
+    family: &'static str,
+    weight: Weight,
 }
 
 fn spec(slot: Slot) -> SlotSpec {
-    match slot {
-        Slot::InterRegular => SlotSpec { paths: &[INTER_TTC], ttc: Some(("Inter", 400, 0)) },
-        Slot::InterMedium => SlotSpec { paths: &[INTER_TTC], ttc: Some(("Inter", 500, 10)) },
-        Slot::InterSemiBold => SlotSpec { paths: &[INTER_TTC], ttc: Some(("Inter", 600, 12)) },
-        Slot::InterBold => SlotSpec { paths: &[INTER_TTC], ttc: Some(("Inter", 700, 14)) },
-        Slot::NotoRegular => SlotSpec {
-            paths: &["/usr/share/fonts/noto/NotoSans-Regular.ttf", "/usr/share/fonts/TTF/NotoSans-Regular.ttf"],
-            ttc: None,
-        },
-        Slot::NotoBold => SlotSpec {
-            paths: &["/usr/share/fonts/noto/NotoSans-Bold.ttf", "/usr/share/fonts/TTF/NotoSans-Bold.ttf"],
-            ttc: None,
-        },
-        Slot::NotoSymbols => SlotSpec { paths: &["/usr/share/fonts/noto/NotoSansSymbols-Regular.ttf"], ttc: None },
-        Slot::NotoSymbols2 => SlotSpec { paths: &["/usr/share/fonts/noto/NotoSansSymbols2-Regular.ttf"], ttc: None },
-        Slot::NotoMath => SlotSpec { paths: &["/usr/share/fonts/noto/NotoSansMath-Regular.ttf"], ttc: None },
-        Slot::DejaVu => SlotSpec {
-            paths: &["/usr/share/fonts/TTF/DejaVuSans.ttf", "/usr/share/fonts/dejavu/DejaVuSans.ttf"],
-            ttc: None,
-        },
+    let (family, weight) = match slot {
+        Slot::InterRegular => ("Inter", Weight::Regular),
+        Slot::InterMedium => ("Inter", Weight::Medium),
+        Slot::InterSemiBold => ("Inter", Weight::DemiBold),
+        Slot::InterBold => ("Inter", Weight::Bold),
+        Slot::NotoRegular => ("Noto Sans", Weight::Regular),
+        Slot::NotoBold => ("Noto Sans", Weight::Bold),
+        Slot::NotoSymbols => ("Noto Sans Symbols", Weight::Regular),
+        Slot::NotoSymbols2 => ("Noto Sans Symbols2", Weight::Regular),
+        Slot::NotoMath => ("Noto Sans Math", Weight::Regular),
+        Slot::DejaVu => ("DejaVu Sans", Weight::Regular),
+    };
+    SlotSpec { family, weight }
+}
+
+/// The fontconfig weight (its own scale, not CSS) for `w`.
+fn fc_weight(w: Weight) -> i32 {
+    match w {
+        Weight::Regular => FC_WEIGHT_REGULAR,
+        Weight::Medium => FC_WEIGHT_MEDIUM,
+        Weight::DemiBold => FC_WEIGHT_SEMIBOLD,
+        Weight::Bold => FC_WEIGHT_BOLD,
     }
 }
 
+/// The face index to use for a fontconfig match, or `None` when the match must be ignored.
+/// Fontconfig always substitutes something, so a different family is a miss (the Qt-parity
+/// metrics depend on the real family); a named instance (high index bits) is a variable font
+/// preset and the renderer does not apply variation axes.
+fn accept_match(requested: &str, matched: &str, index: i32) -> Option<u32> {
+    let index = u32::try_from(index).ok()?;
+    (same_family(requested, matched) && index >> 16 == 0).then_some(index)
+}
+
+/// Family equality the way fontconfig defines it (`FcStrCmpIgnoreBlanksAndCase`): Arch's file
+/// names itself "Noto Sans Symbols 2", Debian's "Noto Sans Symbols2".
+fn same_family(a: &str, b: &str) -> bool {
+    let key = |s: &str| {
+        s.chars()
+            .filter(|c| !c.is_whitespace())
+            .flat_map(char::to_lowercase)
+            .collect::<String>()
+    };
+    key(a) == key(b)
+}
+
+/// Asks fontconfig for the file and face index of `spec`.
+fn resolve(fc: &Fontconfig, spec: &SlotSpec) -> Option<(PathBuf, u32)> {
+    let family = CString::new(spec.family).ok()?;
+    let mut pat = Pattern::new(fc).ok()?;
+    pat.add_string(FC_FAMILY, &family).ok()?;
+    pat.add_integer(FC_WEIGHT, fc_weight(spec.weight)).ok()?;
+    let found = pat.font_match().ok()?;
+    let index = accept_match(spec.family, found.get_string(FC_FAMILY).ok()?, found.face_index().ok()?)?;
+    Some((PathBuf::from(found.filename().ok()?), index))
+}
+
 /// Maps a read-only file into memory for the life of the process.
-pub fn map_file(path: &str) -> Option<&'static [u8]> {
+pub fn map_file(path: &Path) -> Option<&'static [u8]> {
     let f = std::fs::File::open(path).ok()?;
     let len = f.metadata().ok()?.len() as usize;
     if len == 0 {
@@ -89,36 +126,6 @@ pub fn map_file(path: &str) -> Option<&'static [u8]> {
         Ok(p) => Some(unsafe { std::slice::from_raw_parts(p as *const u8, len) }),
         Err(_) => std::fs::read(path).ok().map(|v| &*Box::leak(v.into_boxed_slice())),
     }
-}
-
-/// Picks the face of `family`/`weight` (non-italic) out of a collection; tries `hint` first.
-fn find_in_collection(data: &'static [u8], family: &str, weight: u16, hint: u32) -> Option<u32> {
-    let matches = |idx: u32| -> bool {
-        let Ok(face) = ttf::Face::parse(data, idx) else { return false };
-        if face.is_italic() || face.weight().to_number() != weight {
-            return false;
-        }
-        let mut fam = None;
-        for id in [16u16, 1] {
-            for n in face.names() {
-                if n.name_id == id && n.is_unicode() {
-                    if let Some(s) = n.to_string() {
-                        fam = Some(s);
-                        break;
-                    }
-                }
-            }
-            if fam.is_some() {
-                break;
-            }
-        }
-        fam.as_deref() == Some(family)
-    };
-    if matches(hint) {
-        return Some(hint);
-    }
-    let n = ttf::fonts_in_collection(data)?;
-    (0..n).find(|&i| matches(i))
 }
 
 /// One loaded face with its small per-face caches.
@@ -283,19 +290,23 @@ pub struct Fonts {
     /// Outer `None` = not loaded yet, `Some(None)` = file missing.
     #[expect(clippy::option_option, reason = "outer = loaded yet, inner = file exists")]
     faces: [Option<Option<Box<Face>>>; SLOT_COUNT],
+    /// Created on the first load (the renderer promises cheap construction); `None` inside =
+    /// fontconfig failed to initialise, so every slot is missing.
+    fc: OnceCell<Option<Fontconfig>>,
     pub style: FontStyle,
 }
 
 impl Fonts {
     pub fn new(style: FontStyle) -> Fonts {
-        Fonts { faces: Default::default(), style }
+        Fonts { faces: Default::default(), fc: OnceCell::new(), style }
     }
 
     /// Loads the slot on first use; `None` when the file is missing.
     pub fn get(&mut self, slot: Slot) -> Option<&mut Face> {
         let i = slot as usize;
         if self.faces[i].is_none() {
-            self.faces[i] = Some(load(slot));
+            let fc = self.fc.get_or_init(Fontconfig::new).as_ref();
+            self.faces[i] = Some(fc.and_then(|fc| load(fc, slot)));
         }
         self.faces[i].as_mut().unwrap().as_deref_mut()
     }
@@ -325,35 +336,60 @@ impl Fonts {
     }
 }
 
-fn load(slot: Slot) -> Option<Box<Face>> {
-    let sp = spec(slot);
-    for p in sp.paths {
-        let Some(data) = map_file(p) else { continue };
-        let index = match sp.ttc {
-            Some((fam, w, hint)) => match find_in_collection(data, fam, w, hint) {
-                Some(i) => i,
-                None => continue,
-            },
-            None => 0,
-        };
-        if let Ok(face) = ttf::Face::parse(data, index) {
-            return Some(Box::new(Face::new(face)));
-        }
-    }
-    None
+fn load(fc: &Fontconfig, slot: Slot) -> Option<Box<Face>> {
+    let (path, index) = resolve(fc, &spec(slot))?;
+    let face = ttf::Face::parse(map_file(&path)?, index).ok()?;
+    Some(Box::new(Face::new(face)))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const ALL_SLOTS: [Slot; SLOT_COUNT] = [
+        Slot::InterRegular,
+        Slot::InterMedium,
+        Slot::InterSemiBold,
+        Slot::InterBold,
+        Slot::NotoRegular,
+        Slot::NotoBold,
+        Slot::NotoSymbols,
+        Slot::NotoSymbols2,
+        Slot::NotoMath,
+        Slot::DejaVu,
+    ];
+
     #[test]
-    fn inter_collection_indices() {
-        let data = map_file(INTER_TTC).expect("Inter.ttc");
-        assert_eq!(find_in_collection(data, "Inter", 400, 99), Some(0));
-        assert_eq!(find_in_collection(data, "Inter", 500, 99), Some(10));
-        assert_eq!(find_in_collection(data, "Inter", 600, 99), Some(12));
-        assert_eq!(find_in_collection(data, "Inter", 700, 99), Some(14));
+    fn weights_map_to_fontconfig_scale() {
+        let w = [Weight::Regular, Weight::Medium, Weight::DemiBold, Weight::Bold].map(fc_weight);
+        assert_eq!(w, [80, 100, 180, 200]);
+    }
+
+    #[test]
+    fn accept_match_rejects_substitutes_and_named_instances() {
+        assert_eq!(accept_match("Inter", "Inter", 0), Some(0));
+        assert_eq!(accept_match("Inter", "Inter", 3), Some(3));
+        assert_eq!(accept_match("Inter", "DejaVu Sans", 0), None);
+        assert_eq!(accept_match("Noto Sans Symbols2", "Noto Sans Symbols 2", 0), Some(0));
+        assert_eq!(accept_match("Noto Sans Symbols2", "noto sans symbols2", 0), Some(0));
+        assert_eq!(accept_match("Noto Sans Symbols2", "Noto Sans Symbols", 0), None);
+        assert_eq!(accept_match("Inter", "Inter", (2 << 16) | 1), None);
+        assert_eq!(accept_match("Inter", "Inter", -1), None);
+    }
+
+    #[test]
+    fn all_slots_resolve_to_their_family() {
+        let fc = Fontconfig::new().unwrap();
+        // resolve() only returns a match whose family equals the requested one
+        for slot in ALL_SLOTS {
+            let sp = spec(slot);
+            let (path, _) = resolve(&fc, &sp).unwrap_or_else(|| panic!("{slot:?} ({}) not found", sp.family));
+            assert!(path.exists(), "{slot:?}: {}", path.display());
+        }
+    }
+
+    #[test]
+    fn inter_metrics() {
         let mut f = Fonts::new(FontStyle::Inter);
         let r = f.get(Slot::InterRegular).unwrap();
         assert_eq!((r.asc, r.desc, r.upem), (1984.0, 494.0, 2048.0));
@@ -361,6 +397,9 @@ mod tests {
         let a = r.gid('A');
         let v = r.gid('V');
         assert!(r.kern(a, v) < 0, "AV pair kerning");
+        for slot in [Slot::InterMedium, Slot::InterSemiBold, Slot::InterBold] {
+            assert!(f.get(slot).is_some(), "{slot:?}");
+        }
     }
 
     #[test]
