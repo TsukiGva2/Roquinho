@@ -228,6 +228,7 @@ fn hex(c: Color) -> String {
 impl App {
     /// Builds the scene at `now` (monotonic) / `epoch` (wall clock), all damaged.
     pub fn new(init: AppInit, now: Ms, epoch: f64) -> App {
+        foco_ui::real::seed_from_epoch(epoch);
         let AppInit { store, rc, persist, state_path, exe, monitors, autostart, initial_cmd } = init;
         let accent_choice = rc.accent().and_then(Color::hex);
         let first_run = store.first_run();

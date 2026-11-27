@@ -1,6 +1,6 @@
 //! Wake and damage budgets of the real `App` under a fake clock (ui-design.md §2-3): how often an idle notch wakes
-//! and how many pixels it repaints. Pet blink/fidget timing is seeded from the wall clock, so the rates jitter by a
-//! few percent between runs; the budgets leave 30-50% over the measured value for that and for debug-build noise.
+//! and how many pixels it repaints. Pet blink/fidget seeds come from the injected epoch, so a run is reproducible; the
+//! measured ranges below are from wall-clock seeds, and the budgets leave 30-50% over them so a new seed still fits.
 
 mod common;
 

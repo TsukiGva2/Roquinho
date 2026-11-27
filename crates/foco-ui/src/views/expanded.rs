@@ -186,7 +186,6 @@ impl ExpandedView {
 
     /// Same as `new` with custom queue / done sections (tests use stubs).
     pub fn with_sections(queue: Box<dyn Section>, done: Box<dyn Section>) -> Self {
-        let seed = foco_base::epoch_ms().to_bits() ^ 0x9E37_79B9_7F4A_7C15;
         ExpandedView {
             shown: false,
             settings_open: false,
@@ -232,7 +231,7 @@ impl ExpandedView {
             implicit_h: (HEADER_Y + HEADER_H + 12.0 + BOTTOM_PAD).min(MAX_H),
             grab_sections: false,
             scratch: DamageSink::new(),
-            rng: seed | 1,
+            rng: crate::real::next_seed() | 1,
             inited: false,
             last_rev: 0,
             last_env_rev: u64::MAX,
