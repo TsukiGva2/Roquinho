@@ -24,3 +24,6 @@ foco-pet.workspace = true
 foco-ui.workspace = true
 rustix.workspace = true
 tiny-skia = { workspace = true, features = ["png-format"] }
+
+[dev-dependencies]
+dhat.workspace = true
