@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/media/roquinho.gif" alt="Roquinho rodando: demandas entrando na fila, foco, concluir, esconder numa bolinha e o balão de atalhos" width="640"><br>
+  <img src="docs/media/roquinho.gif" alt="Roquinho rodando: abrir o painel, registrar demandas, focar, concluir, trocar o mascote e esconder numa bolinha" width="560"><br>
   <sub>O Roquinho de verdade, gravado num X virtual. <a href="docs/media/roquinho.mp4">Ver em vídeo (MP4)</a>.</sub>
 </p>
 
@@ -57,33 +57,14 @@ só no notch de foco.
 > Como o formato do `state.json`, o `foco-maxrc` e o nome do binário são os mesmos, as duas versões não devem
 > rodar ao mesmo tempo (compartilham o socket de instância única).
 
-### 📸 Imagens do Foquinho original
-
-O Roquinho porta o visual do original, então as telas são parecidas. Os textos mudaram (as
-[frases punk](#-frases-punk)) e o que é de música não existe aqui. Estas imagens são do Foquinho, feitas pelo Vitor:
-
-<p align="center">
-  <img src="docs/media/hero.gif" alt="Notch do Foquinho: passar o mouse, concluir e a próxima demanda entrando" width="880">
-</p>
-
-<p align="center">
-  <img src="docs/media/panel.gif" alt="Abrindo o painel e registrando uma demanda" width="880">
-</p>
+### 📸 Telas
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/media/panel.png" alt="Painel aberto"></td>
-    <td width="50%"><img src="docs/media/settings.png" alt="Ajustes"></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/media/hide.gif" alt="Notch virando bolinha e voltando"></td>
-    <td width="50%"><img src="docs/media/tip.gif" alt="Balão com os atalhos"></td>
+    <td width="50%" valign="top"><img src="docs/media/painel.png" alt="Painel aberto com uma demanda em foco e a fila"></td>
+    <td width="50%" valign="top"><img src="docs/media/ajustes.png" alt="Ajustes: mascote, comportamento e monitor"></td>
   </tr>
 </table>
-
-<p align="center">
-  <img src="docs/media/pets.gif" alt="Os três mascotes passando pelas expressões" width="760">
-</p>
 
 ---
 
